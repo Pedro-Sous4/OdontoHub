@@ -1,0 +1,51 @@
+{
+  "name": "odontohub-backend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:gateway": "tsx watch server/api-gateway.ts",
+    "dev:auth": "tsx watch services/auth/index.ts",
+    "dev:patients": "tsx watch services/patients/index.ts",
+    "dev:agenda": "tsx watch services/agenda/index.ts",
+    "dev:prontuario": "tsx watch services/prontuario/index.ts",
+    "dev:finance": "tsx watch services/finance/index.ts",
+    "dev:tiss": "tsx watch services/tiss/index.ts",
+    "dev:whatsapp": "tsx watch services/whatsapp/index.ts",
+    "dev:google": "tsx watch services/google-sync/index.ts",
+    "dev:notification": "tsx watch services/notification/index.ts",
+    "dev:worker": "tsx watch workers/index.ts",
+    "build": "tsc -p tsconfig.json",
+    "start:gateway": "node dist/server/api-gateway.js",
+    "start:worker": "node dist/workers/index.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.637.0",
+    "bcrypt": "^5.1.1",
+    "bullmq": "^5.9.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.0",
+    "http-proxy-middleware": "^3.0.0",
+    "ioredis": "^5.4.1",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.12.0",
+    "pino": "^9.3.2",
+    "pino-http": "^10.3.0",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.8.1",
+    "whatsapp-web.js": "^1.26.0"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/node": "^22.5.1",
+    "@types/pg": "^8.11.6",
+    "@types/qrcode": "^1.5.5",
+    "tsx": "^4.17.1",
+    "typescript": "^5.5.4"
+  }
+}

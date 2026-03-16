@@ -1,0 +1,199 @@
+version: '3.9'
+
+services:
+  api:
+    build: ./backend
+    environment:
+      SERVICE_CMD: dev:gateway
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/odontohub
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: supersecret
+    ports:
+      - '3000:3000'
+    depends_on:
+      - postgres
+      - redis
+      - auth-service
+      - patients-service
+      - agenda-service
+      - prontuario-service
+      - finance-service
+      - tiss-service
+      - google-sync-service
+      - notification-service
+      - whatsapp-service
+
+  auth-service:
+    build: ./backend
+    environment:
+      SERVICE_CMD: dev:auth
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/odontohub
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: supersecret
+    ports:
+      - '3001:3001'
+    depends_on:
+      - postgres
+      - redis
+
+  patients-service:
+    build: ./backend
+    environment:
+      SERVICE_CMD: dev:patients
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/odontohub
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: supersecret
+      S3_ENDPOINT: http://minio:9000
+      S3_BUCKET: odonto-files
+      S3_ACCESS_KEY: minio
+      S3_SECRET_KEY: minio123
+    ports:
+      - '3002:3002'
+    depends_on:
+      - postgres
+      - redis
+      - minio
+
+  agenda-service:
+    build: ./backend
+    environment:
+      SERVICE_CMD: dev:agenda
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/odontohub
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: supersecret
+    ports:
+      - '3003:3003'
+    depends_on:
+      - postgres
+      - redis
+
+  prontuario-service:
+    build: ./backend
+    environment:
+      SERVICE_CMD: dev:prontuario
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/odontohub
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: supersecret
+    ports:
+      - '3007:3007'
+    depends_on:
+      - postgres
+      - redis
+
+  finance-service:
+    build: ./backend
+    environment:
+      SERVICE_CMD: dev:finance
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/odontohub
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: supersecret
+    ports:
+      - '3004:3004'
+    depends_on:
+      - postgres
+      - redis
+
+  tiss-service:
+    build: ./backend
+    environment:
+      SERVICE_CMD: dev:tiss
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/odontohub
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: supersecret
+    ports:
+      - '3008:3008'
+    depends_on:
+      - postgres
+      - redis
+
+  whatsapp-service:
+    build: ./backend
+    environment:
+      SERVICE_CMD: dev:whatsapp
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/odontohub
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: supersecret
+    ports:
+      - '3005:3005'
+    depends_on:
+      - postgres
+      - redis
+
+  google-sync-service:
+    build: ./backend
+    environment:
+      SERVICE_CMD: dev:google
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/odontohub
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: supersecret
+    ports:
+      - '3006:3006'
+    depends_on:
+      - postgres
+      - redis
+
+  notification-service:
+    build: ./backend
+    environment:
+      SERVICE_CMD: dev:notification
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/odontohub
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: supersecret
+    ports:
+      - '3009:3009'
+    depends_on:
+      - postgres
+      - redis
+
+  worker-service:
+    build: ./backend
+    environment:
+      SERVICE_CMD: dev:worker
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/odontohub
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: supersecret
+    ports:
+      - '3010:3010'
+    depends_on:
+      - postgres
+      - redis
+
+  frontend:
+    build: ./frontend
+    ports:
+      - '5173:5173'
+    depends_on:
+      - api
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: odontohub
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./backend/database/migrations:/docker-entrypoint-initdb.d
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ':9001'
+    environment:
+      MINIO_ROOT_USER: minio
+      MINIO_ROOT_PASSWORD: minio123
+    ports:
+      - '9000:9000'
+      - '9001:9001'
+    volumes:
+      - minio_data:/data
+
+volumes:
+  pgdata:
+  minio_data:
