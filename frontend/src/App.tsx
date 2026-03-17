@@ -21,6 +21,8 @@ import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import { api, setAuthToken } from './api';
 import { Appointment, Dentist } from './types';
 import { MessagesCenter } from './MessagesCenter';
+import { PatientsCenter } from './PatientsCenter';
+import { FinanceCenter } from './FinanceCenter';
 import odontoHubLogo from './assets/odontohub-logo.png';
 
 const locales = { 'pt-BR': ptBR };
@@ -463,6 +465,14 @@ export function App() {
       {activeMenu === 'Mensagens' ? (
         <main className="contentSingle">
           <MessagesCenter token={token} onError={setErrorMessage} />
+        </main>
+      ) : activeMenu === 'Pacientes' ? (
+        <main className="contentSingle">
+          <PatientsCenter token={token} onError={setErrorMessage} />
+        </main>
+      ) : activeMenu === 'Financeiro' ? (
+        <main className="contentSingle">
+          <FinanceCenter token={token} onError={setErrorMessage} />
         </main>
       ) : (
       <main className="contentGrid">

@@ -38,7 +38,7 @@ agendaRouter.get('/appointments', async (req: AuthRequest, res) => {
      FROM appointments a
      JOIN patients p ON p.id = a.patient_id AND p.tenant_id = a.tenant_id
      JOIN dentists d ON d.id = a.dentist_id AND d.tenant_id = a.tenant_id
-     WHERE tenant_id = $1
+     WHERE a.tenant_id = $1
        AND start_time >= $2
        AND end_time <= $3
      ORDER BY a.start_time ASC`,

@@ -375,6 +375,236 @@ button {
   font-size: 13px;
 }
 
+.patientsPanel {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  min-height: 78vh;
+  padding: 12px;
+}
+
+.patientsHeader {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.patientsHeader h2 {
+  margin: 0;
+  color: #334155;
+}
+
+.patientsTabs {
+  display: flex;
+  gap: 8px;
+}
+
+.patientsTabs button {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #475569;
+}
+
+.patientsTabs button.active {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.patientsToolbar {
+  margin-top: 12px;
+  display: flex;
+  gap: 8px;
+}
+
+.patientsToolbar input {
+  flex: 1;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.patientsTableWrapper {
+  margin-top: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: auto;
+}
+
+.patientsTable {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 740px;
+}
+
+.patientsTable th,
+.patientsTable td {
+  text-align: left;
+  padding: 10px;
+  border-bottom: 1px solid #edf2f7;
+  font-size: 13px;
+  color: #334155;
+}
+
+.patientsTable th {
+  background: #f8fafc;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #64748b;
+}
+
+.emptyPatients,
+.patientsPlaceholder {
+  color: #64748b;
+  font-size: 13px;
+  text-align: center;
+  padding: 24px 12px;
+}
+
+.patientForm {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.patientSection {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
+  background: #f8fafc;
+}
+
+.sectionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.patientForm label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #475569;
+  font-size: 13px;
+}
+
+.patientForm input {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.patientForm select {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px;
+  background: #fff;
+}
+
+.patientFormActions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 10px;
+  margin-top: 4px;
+}
+
+.patientModal {
+  width: min(760px, calc(100vw - 40px));
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+  margin: 0 auto;
+}
+
+.patientModal .patientForm {
+  margin-top: 8px;
+}
+
+.modalTabs {
+  margin-top: 10px;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.modalTabButton {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.modalTabButton.active {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.patientFormSectionTitle {
+  margin: 0 0 10px;
+  color: #1e293b;
+  font-size: 14px;
+}
+
+.phoneInputGroup {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 8px;
+}
+
+.checkboxLabel {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px !important;
+}
+
+.checkboxLabel input {
+  width: 16px;
+  height: 16px;
+}
+
+.patientForm textarea {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px;
+  min-height: 90px;
+  resize: vertical;
+}
+
+.inputError {
+  border-color: #ef4444 !important;
+  background: #fff5f5;
+}
+
+.fieldErrorText {
+  color: #b91c1c;
+  font-size: 11px;
+}
+
+.fullWidth {
+  grid-column: 1 / -1;
+}
+
+.financeToolbar {
+  justify-content: flex-end;
+}
+
+.financeToolbar button {
+  flex: 0 0 auto;
+}
+
 .calendarPanel {
   background: #fff;
   border: 1px solid #e2e8f0;
@@ -725,6 +955,10 @@ button {
   border-top: 1px solid #dbe3ed;
 }
 
+.mainSchedule .rbc-allday-cell {
+  display: none;
+}
+
 .mainSchedule .rbc-time-header-content .rbc-header {
   font-weight: 700;
   color: #475569;
@@ -823,6 +1057,23 @@ button {
 
   .messagesGrid {
     grid-template-columns: 1fr;
+  }
+
+  .patientForm {
+    gap: 10px;
+  }
+
+  .sectionGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .phoneInputGroup {
+    grid-template-columns: 1fr;
+  }
+
+  .patientModal {
+    width: calc(100vw - 28px);
+    max-height: calc(100vh - 28px);
   }
 
   .appointmentPopover {
@@ -989,6 +1240,24 @@ button {
   .messagesTabs {
     overflow-x: auto;
     white-space: nowrap;
+  }
+
+  .patientsTabs {
+    width: 100%;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .patientsToolbar {
+    flex-direction: column;
+  }
+
+  .patientsToolbar button {
+    width: 100%;
+  }
+
+  .financeToolbar {
+    justify-content: stretch;
   }
 
   .conversationsList {

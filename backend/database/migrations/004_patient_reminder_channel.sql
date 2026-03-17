@@ -1,0 +1,2 @@
+ALTER TABLE patients
+  ADD COLUMN IF NOT EXISTS lembrete_canal VARCHAR(20);
