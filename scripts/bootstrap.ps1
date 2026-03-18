@@ -2,7 +2,8 @@ $ErrorActionPreference = 'Stop'
 
 param(
   [string]$GatewayBaseUrl = 'http://localhost:3000',
-  [int]$HealthTimeoutSeconds = 240
+  [int]$HealthTimeoutSeconds = 240,
+  [switch]$Full
 )
 
 function Info($message) {
@@ -30,8 +31,17 @@ try {
   Fail 'Docker instalado, mas o engine não respondeu. Abra o Docker Desktop e aguarde iniciar.'
 }
 
-Info 'Subindo stack com docker compose...'
-docker compose up -d --build
+$composeArgs = @('up', '-d', '--build')
+if ($Full) {
+  Info 'Modo full (microserviços + worker) ativado.'
+  $composeArgs += '--profile'
+  $composeArgs += 'full'
+} else {
+  Info 'Modo leve (API Gateway + Frontend + infra) ativado.'
+}
+
+Info "Subindo stack com docker compose: docker compose $($composeArgs -join ' ')"
+& docker compose @composeArgs
 if ($LASTEXITCODE -ne 0) {
   Fail 'Falha ao subir a stack com docker compose.'
 }

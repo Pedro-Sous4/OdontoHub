@@ -21,3 +21,9 @@ export const config = {
   databaseUrl: process.env.DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5432/odontohub',
   redisUrl: process.env.REDIS_URL ?? 'redis://localhost:6379'
 };
+
+// Configurações de desenvolvimento (não usadas em produção).
+export const devConfig = {
+  bypassAuth: process.env.BYPASS_AUTH === 'true',
+  bypassTenantId: process.env.BYPASS_TENANT_ID ?? '00000000-0000-0000-0000-000000000000'
+};

@@ -152,20 +152,40 @@ CREATE INDEX idx_appointments_time
 ON appointments (tenant_id, start_time);
 ```
 
-## Como subir com Docker
+## Como subir com Docker (recomendado)
+
+A pilha foi preparada para rodar 100% em containers; **não é necessário instalar dependências locais no host**.
+
+### (1) Modo leve – ideal para máquinas fracas
 
 ```bash
 docker compose up --build
 ```
 
+> Esse comando inicia apenas os serviços essenciais (API Gateway + Frontend + infra), reduzindo carga de CPU/memória.
+
+### (2) Modo completo (microserviços + worker)
+
+```bash
+docker compose --profile full up --build
+```
+
+> Use quando quiser trabalhar com todas as funcionalidades (agenda, whatsapp, sync etc.).
+
+Para parar a stack:
+
+```bash
+docker compose down
+```
+
 Se o comando `docker` não existir no PATH, instale/abra o Docker Desktop e valide com `docker --version`.
 
-Serviços:
+Serviços expostos:
 - API Gateway: `http://localhost:3000`
 - Frontend: `http://localhost:5173`
 - PostgreSQL: `localhost:5432`
 - Redis: `localhost:6379`
-- MinIO: `http://localhost:9001`
+- MinIO Console: `http://localhost:9001`
 
 ## Endpoints principais
 
@@ -223,6 +243,8 @@ powershell -ExecutionPolicy Bypass -File .\scripts\smoke-test.ps1
 
 ## Bootstrap 1 comando (Docker + Health + Smoke)
 
+### Modo leve (recomendado para máquinas fracas)
+
 PowerShell:
 
 ```powershell
@@ -233,4 +255,18 @@ Prompt CMD:
 
 ```cmd
 scripts\bootstrap.cmd
+```
+
+### Modo completo (microserviços + worker)
+
+PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\bootstrap.ps1 -Full
+```
+
+Prompt CMD:
+
+```cmd
+powershell -ExecutionPolicy Bypass -File .\scripts\bootstrap.ps1 -Full
 ```

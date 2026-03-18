@@ -116,7 +116,15 @@ function EventCard({ event }: { event: CalendarEvent }) {
 
 export function App() {
   const menuItems = ['Agenda', 'Pacientes', 'Financeiro', 'Mensagens'];
+  // Token usado para autenticação; é armazenado no localStorage após login.
   const [token, setToken] = useState('');
+  const [authEmail, setAuthEmail] = useState('pedro@odontohub.com');
+  const [authPassword, setAuthPassword] = useState('senha123');
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [authClinicName, setAuthClinicName] = useState('Clínica A');
+  const [authCnpj, setAuthCnpj] = useState('00000000000191');
+  const [authClinicEmail, setAuthClinicEmail] = useState('contato@clinicaa.com');
+
   const [activeMenu, setActiveMenu] = useState('Agenda');
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedView, setSelectedView] = useState<(typeof Views)[keyof typeof Views]>(Views.WEEK);
@@ -139,6 +147,7 @@ export function App() {
   const [whatsStatus, setWhatsStatus] = useState<WhatsAppStatus>({ status: 'disconnected' });
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [backendHealthy, setBackendHealthy] = useState<boolean | null>(null);
   const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth <= 900);
   const [showMobileSidebar, setShowMobileSidebar] = useState(false);
 
@@ -154,6 +163,45 @@ export function App() {
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  // Preenche token de localStorage para não precisar colar sempre
+  useEffect(() => {
+    const stored = localStorage.getItem('odontohub_token');
+    if (stored) {
+      setToken(stored);
+      setAuthToken(stored);
+    }
+  }, []);
+
+  // Sincroniza token com localStorage e cabeçalho da API
+  useEffect(() => {
+    if (token) {
+      localStorage.setItem('odontohub_token', token);
+      setAuthToken(token);
+    } else {
+      localStorage.removeItem('odontohub_token');
+      api.defaults.headers.common.Authorization = '';
+    }
+  }, [token]);
+
+  useEffect(() => {
+    const checkBackend = async () => {
+      try {
+        const resp = await fetch('http://localhost:3000/health');
+        setBackendHealthy(resp.ok);
+      } catch {
+        setBackendHealthy(false);
+      }
+    };
+
+    void checkBackend();
+  }, []);
+
+  useEffect(() => {
+    if (token) {
+      void loadDashboard();
+    }
+  }, [token]);
 
   useEffect(() => {
     if (isMobile && selectedView !== Views.DAY) {
@@ -237,6 +285,67 @@ export function App() {
 
   async function loadDashboard() {
     await Promise.all([loadWeek(), loadNotifications(), loadWhatsAppStatus()]);
+  }
+
+  async function handleLogin() {
+    try {
+      setLoading(true);
+      setErrorMessage('');
+      const response = await api.post<{ token: string }>('/auth/login', {
+        email: authEmail,
+        senha: authPassword
+      });
+
+      console.log('Login response', response.data);
+      setToken(response.data.token);
+      await loadDashboard();
+    } catch (error: any) {
+      console.error('Login error', error);
+
+      if (error?.response) {
+        const status = error.response.status;
+        const message = error.response.data?.message ?? error.response.statusText;
+        setErrorMessage(`Erro ${status}: ${message}`);
+      } else if (error?.request) {
+        setErrorMessage(
+          'Não foi possível conectar ao backend. Verifique se o servidor está rodando (npm run dev:gateway).'
+        );
+      } else {
+        setErrorMessage('Falha no login.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleRegister() {
+    try {
+      setLoading(true);
+      setErrorMessage('');
+      const response = await api.post<{ token: string }>('/auth/register', {
+        nomeClinica: authClinicName,
+        cnpj: authCnpj,
+        emailClinica: authClinicEmail,
+        nome: authEmail,
+        email: authEmail,
+        senha: authPassword,
+        role: 'admin'
+      });
+
+      setToken(response.data.token);
+      setShowRegisterModal(false);
+      await loadDashboard();
+    } catch (error: any) {
+      setErrorMessage(error?.response?.data?.message ?? 'Falha ao criar conta.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleLogout() {
+    setToken('');
+    setErrorMessage('');
+    setAuthPassword('');
   }
 
   async function createAppointment(slot: SlotInfo) {
@@ -428,6 +537,130 @@ export function App() {
     return 'Desconectado';
   }
 
+  if (!token) {
+    return (
+      <div className="loginPage">
+        <div className="loginCard">
+          <div className="loginLeft">
+            <h1 className="loginTitle">Faça seu login</h1>
+            {backendHealthy === false ? (
+              <div className="errorBanner">
+                Não foi possível conectar ao backend. Execute <code>npm run dev:gateway</code> no backend.
+              </div>
+            ) : null}
+            {errorMessage ? <div className="errorBanner">{errorMessage}</div> : null}
+
+            <label className="formLabel">E-mail</label>
+            <input
+              className="formInput"
+              value={authEmail}
+              onChange={(e) => setAuthEmail(e.target.value)}
+              placeholder="usuario@clinica.com"
+            />
+            <label className="formLabel">Senha</label>
+            <input
+              className="formInput"
+              type="password"
+              value={authPassword}
+              onChange={(e) => setAuthPassword(e.target.value)}
+              placeholder="Senha"
+            />
+
+            <div className="loginActions">
+              <button className="primaryAction" onClick={handleLogin} disabled={loading}>
+              {loading ? (
+                <>
+                  <span className="spinner" />
+                  Entrando...
+                </>
+              ) : (
+                'Entrar'
+              )}
+            </button>
+              <button className="ghostAction" onClick={() => setShowRegisterModal(true)} type="button">
+                Criar conta
+              </button>
+            </div>
+
+            <div className="loginHint">
+              Use o usuário de teste:
+              <br />
+              <strong>pedro@odontohub.com</strong> / <strong>senha123</strong>
+            </div>
+          </div>
+
+          <div className="loginRight">
+            <div className="loginRightContent">
+              <h2>Bem-vindo ao OdontoHub</h2>
+              <p>Gerencie agenda, pacientes e financeiro em um único lugar.</p>
+            </div>
+          </div>
+        </div>
+
+        {showRegisterModal ? (
+          <div className="scheduleModalOverlay" onClick={() => setShowRegisterModal(false)}>
+            <div className="scheduleModal" onClick={(event) => event.stopPropagation()}>
+              <div className="scheduleModalHeader">
+                <strong>Cadastrar clínica</strong>
+                <button className="popoverClose" onClick={() => setShowRegisterModal(false)}>×</button>
+              </div>
+
+              <label className="formLabel">Nome da clínica</label>
+              <input
+                className="formInput"
+                value={authClinicName}
+                onChange={(event) => setAuthClinicName(event.target.value)}
+                placeholder="Clínica A"
+              />
+
+              <label className="formLabel">CNPJ</label>
+              <input
+                className="formInput"
+                value={authCnpj}
+                onChange={(event) => setAuthCnpj(event.target.value)}
+                placeholder="00000000/0000-00"
+              />
+
+              <label className="formLabel">E-mail da clínica</label>
+              <input
+                className="formInput"
+                value={authClinicEmail}
+                onChange={(event) => setAuthClinicEmail(event.target.value)}
+                placeholder="contato@clinica.com"
+              />
+
+              <label className="formLabel">E-mail do usuário</label>
+              <input
+                className="formInput"
+                value={authEmail}
+                onChange={(event) => setAuthEmail(event.target.value)}
+                placeholder="usuario@clinica.com"
+              />
+
+              <label className="formLabel">Senha</label>
+              <input
+                className="formInput"
+                type="password"
+                value={authPassword}
+                onChange={(event) => setAuthPassword(event.target.value)}
+                placeholder="Senha"
+              />
+
+              <div className="scheduleModalActions">
+                <button className="ghostAction" onClick={() => setShowRegisterModal(false)} type="button">
+                  Cancelar
+                </button>
+                <button className="primaryAction" onClick={handleRegister} type="button">
+                  Criar conta
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
   return (
     <div className="dashboard layoutCodental">
       <header className="topbar">
@@ -452,13 +685,8 @@ export function App() {
           <span className="iconDot" />
         </div>
         <div className="authBox">
-          <input
-            value={token}
-            onChange={(e) => setToken(e.target.value)}
-            placeholder="Cole o JWT"
-            className="tokenInput"
-          />
-          <button onClick={loadDashboard} disabled={loading}>{loading ? 'Carregando...' : 'Atualizar'}</button>
+          <span style={{ fontSize: 12, color: '#1f2937', paddingRight: 10 }}>{authEmail}</span>
+          <button onClick={handleLogout}>Sair</button>
         </div>
       </header>
 
@@ -592,6 +820,67 @@ export function App() {
           </div>
 
           {errorMessage ? <div className="errorBanner">{errorMessage}</div> : null}
+
+          {showRegisterModal ? (
+            <div className="scheduleModalOverlay" onClick={() => setShowRegisterModal(false)}>
+              <div className="scheduleModal" onClick={(event) => event.stopPropagation()}>
+                <div className="scheduleModalHeader">
+                  <strong>Cadastrar clínica</strong>
+                  <button className="popoverClose" onClick={() => setShowRegisterModal(false)}>×</button>
+                </div>
+
+                <label className="formLabel">Nome da clínica</label>
+                <input
+                  className="formInput"
+                  value={authClinicName}
+                  onChange={(event) => setAuthClinicName(event.target.value)}
+                  placeholder="Clínica A"
+                />
+
+                <label className="formLabel">CNPJ</label>
+                <input
+                  className="formInput"
+                  value={authCnpj}
+                  onChange={(event) => setAuthCnpj(event.target.value)}
+                  placeholder="00000000/0000-00"
+                />
+
+                <label className="formLabel">E-mail da clínica</label>
+                <input
+                  className="formInput"
+                  value={authClinicEmail}
+                  onChange={(event) => setAuthClinicEmail(event.target.value)}
+                  placeholder="contato@clinica.com"
+                />
+
+                <label className="formLabel">E-mail do usuário</label>
+                <input
+                  className="formInput"
+                  value={authEmail}
+                  onChange={(event) => setAuthEmail(event.target.value)}
+                  placeholder="usuario@clinica.com"
+                />
+
+                <label className="formLabel">Senha</label>
+                <input
+                  className="formInput"
+                  type="password"
+                  value={authPassword}
+                  onChange={(event) => setAuthPassword(event.target.value)}
+                  placeholder="Senha"
+                />
+
+                <div className="scheduleModalActions">
+                  <button className="ghostAction" onClick={() => setShowRegisterModal(false)} type="button">
+                    Cancelar
+                  </button>
+                  <button className="primaryAction" onClick={handleRegister} type="button">
+                    Criar conta
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : null}
 
           {showScheduleModal ? (
             <div className="scheduleModalOverlay" onClick={() => setShowScheduleModal(false)}>

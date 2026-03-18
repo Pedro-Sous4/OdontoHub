@@ -3,6 +3,7 @@ import rateLimit from 'express-rate-limit';
 import { verifyJwt } from './auth.js';
 import { AuthRequest } from './types.js';
 import { logger } from './logger.js';
+import { devConfig } from './config.js';
 
 export function httpLogger(req: AuthRequest, res: Response, next: NextFunction) {
   logger.info({ method: req.method, path: req.path, tenantId: req.auth?.tenantId }, 'http_request');
@@ -17,6 +18,13 @@ export const apiLimiter = rateLimit({
 });
 
 export function requireAuth(req: AuthRequest, res: Response, next: NextFunction) {
+  // Bypass de autenticação para ambientes de desenvolvimento (docker/composer)
+  if (devConfig.bypassAuth) {
+    req.auth = { userId: 'dev', tenantId: devConfig.bypassTenantId, role: 'admin' } as any;
+    logger.warn({ auth: req.auth }, 'Autenticação ignorada (BYPASS_AUTH=true)');
+    return next();
+  }
+
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
     return res.status(401).json({ message: 'Token ausente' });

@@ -1,5 +1,5 @@
 INSERT INTO tenants (id, nome_clinica, cnpj, email)
-VALUES ('00000000-0000-0000-0000-000000000001','OdontoHub Clínica Demo','99888777000166','contato@odontohub.com')
+VALUES ('00000000-0000-0000-0000-000000000001','OdontoHub Clï¿½nica Demo','99888777000166','contato@odontohub.com')
 ON CONFLICT (id) DO UPDATE
 SET nome_clinica = EXCLUDED.nome_clinica,
     cnpj = EXCLUDED.cnpj,
@@ -11,7 +11,7 @@ VALUES (
   '00000000-0000-0000-0000-000000000001',
   'Pedro Sousa',
   'pedro@odontohub.com',
-  '',
+  '$2b$12$51pjJh0xu4fb4g5/BfbljunwfRYT6QKV6SB7yR6Z.C2i5mokqTztq',
   'admin'
 )
 ON CONFLICT (id) DO UPDATE
@@ -31,7 +31,7 @@ SET nome = EXCLUDED.nome,
 INSERT INTO patients (id, tenant_id, nome, cpf, telefone, email, data_nascimento)
 VALUES
   ('20000000-0000-0000-0000-000000000001','00000000-0000-0000-0000-000000000001','Maria Oliveira','12345678901','5511999991111','maria@exemplo.com','1992-05-10'),
-  ('20000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000001','João Pereira','12345678902','5511999992222','joao@exemplo.com','1988-09-21')
+  ('20000000-0000-0000-0000-000000000002','00000000-0000-0000-0000-000000000001','Joï¿½o Pereira','12345678902','5511999992222','joao@exemplo.com','1988-09-21')
 ON CONFLICT (id) DO UPDATE
 SET nome = EXCLUDED.nome,
     telefone = EXCLUDED.telefone,

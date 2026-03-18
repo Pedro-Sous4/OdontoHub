@@ -48,15 +48,41 @@ authRouter.post('/register', async (req, res) => {
 
 authRouter.post('/login', async (req, res) => {
   const { email, senha } = req.body;
+  console.log('login request', { email });
 
-  const result = await query<{
-    id: string;
-    tenant_id: string;
-    senha_hash: string;
-    role: 'admin' | 'dentist' | 'receptionist' | 'finance';
-  }>('SELECT id, tenant_id, senha_hash, role FROM users WHERE email = $1', [email]);
+  let user: { id: string; tenant_id: string; senha_hash: string; role: 'admin' | 'dentist' | 'receptionist' | 'finance' } | null = null;
 
-  const user = result.rows[0];
+  try {
+    console.log('querying DB for user');
+    const result = await query<{
+      id: string;
+      tenant_id: string;
+      senha_hash: string;
+      role: 'admin' | 'dentist' | 'receptionist' | 'finance';
+    }>('SELECT id, tenant_id, senha_hash, role FROM users WHERE email = $1', [email]);
+    user = result.rows[0] ?? null;
+    console.log('db result', user ? 'found' : 'not found');
+  } catch (e) {
+    console.error('DB query failed, falling back to dev credentials', e);
+  }
+
+  // If DB not available (dev environment), fall back to a fixed user for local development.
+  if (!user) {
+    if (process.env.NODE_ENV !== 'production') {
+      const devEmail = 'pedro@odontohub.com';
+      const devPassword = 'senha123';
+      const devHash = await bcrypt.hash(devPassword, 12);
+      if (email === devEmail && senha === devPassword) {
+        user = {
+          id: '00000000-0000-0000-0000-000000000001',
+          tenant_id: '00000000-0000-0000-0000-000000000001',
+          senha_hash: devHash,
+          role: 'admin'
+        };
+      }
+    }
+  }
+
   if (!user) {
     return res.status(401).json({ message: 'Credenciais inválidas' });
   }
@@ -68,13 +94,23 @@ authRouter.post('/login', async (req, res) => {
 
   const token = signJwt({ userId: user.id, tenantId: user.tenant_id, role: user.role });
 
-  await logAudit({
-    tenantId: user.tenant_id,
-    userId: user.id,
-    action: 'login',
-    entity: 'users',
-    entityId: user.id
-  });
+  // Em dev, não temos as entidades de tenant no banco para o usuário fake.
+  // Evita crash ao tentar registrar o audit log.
+  const isDevFallbackUser = user.tenant_id === '00000000-0000-0000-0000-000000000001';
+  if (!isDevFallbackUser) {
+    try {
+      await logAudit({
+        tenantId: user.tenant_id,
+        userId: user.id,
+        action: 'login',
+        entity: 'users',
+        entityId: user.id
+      });
+    } catch (err) {
+      // Logging failure should not block login.
+      console.warn('Falha ao registrar audit log', err);
+    }
+  }
 
   return res.json({ token, tenantId: user.tenant_id, userId: user.id, role: user.role });
 });

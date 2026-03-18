@@ -1,0 +1,1042 @@
+body {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: #eef2f6;
+}
+
+.dashboard {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  background: #fff;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 800;
+  font-size: 28px;
+  line-height: 1;
+  color: #3b82f6;
+}
+
+.brandLogo {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+}
+
+.mainNav {
+  display: flex;
+  gap: 6px;
+}
+
+.navBtn {
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  color: #1f2937;
+  border-radius: 10px;
+  padding: 7px 12px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.navBtn.active {
+  background: #e8f1ff;
+  border-color: #bfdbfe;
+  color: #2563eb;
+}
+
+.authBox {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.topIcons {
+  display: flex;
+  gap: 8px;
+}
+
+.iconDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: #94a3b8;
+}
+
+.tokenInput {
+  min-width: 280px;
+  padding: 9px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+button {
+  border: none;
+  background: #1d4ed8;
+  color: #fff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.errorBanner {
+  margin: 10px 0;
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 14px;
+}
+
+.scheduleModalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.scheduleModal {
+  width: min(680px, calc(100vw - 30px));
+  background: #fff;
+  border: 1px solid #dbe3ed;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.25);
+}
+
+.scheduleModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.formLabel {
+  display: block;
+  margin-top: 10px;
+  margin-bottom: 6px;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.formInput {
+  width: 100%;
+  border: 1px solid #d2dbe7;
+  background: #f8fafc;
+  border-radius: 8px;
+  padding: 10px;
+  color: #0f172a;
+}
+
+.smartInsights {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.riskBadge,
+.debtBadge {
+  border: 1px solid #dbe3ed;
+  border-radius: 9px;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: #334155;
+}
+
+.riskBadge.baixo {
+  background: #dcfce7;
+}
+
+.riskBadge.medio {
+  background: #fef3c7;
+}
+
+.riskBadge.alto {
+  background: #fee2e2;
+}
+
+.debtBadge.hasDebt {
+  background: #fee2e2;
+}
+
+.debtBadge.clean {
+  background: #dcfce7;
+}
+
+.scheduleModalActions {
+  margin-top: 14px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.doubleConfirmHint {
+  margin-top: 10px;
+  border: 1px solid #fecaca;
+  background: #fff1f2;
+  color: #9f1239;
+  border-radius: 8px;
+  font-size: 12px;
+  padding: 8px 10px;
+}
+
+.contentGrid {
+  padding: 8px 10px 10px;
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 8px;
+}
+
+.mobileSidebarToggle {
+  display: none;
+}
+
+.leftPanel.mobilePanel.hiddenPanel {
+  display: none;
+}
+
+.contentSingle {
+  padding: 10px;
+}
+
+.messagesPanel {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  min-height: 78vh;
+  padding: 12px;
+}
+
+.messagesHeader h2 {
+  margin: 0;
+  color: #334155;
+}
+
+.messagesTabs {
+  margin-top: 8px;
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.messagesTabs .active {
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.messagesGrid {
+  margin-top: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  overflow: hidden;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  min-height: 65vh;
+}
+
+.conversationsList {
+  border-right: 1px solid #e2e8f0;
+  background: #f8fafc;
+  padding: 10px;
+}
+
+.conversationsTitle {
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 8px;
+}
+
+.conversationItem {
+  width: 100%;
+  text-align: left;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 6px;
+  color: #334155;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.conversationItem strong {
+  font-size: 13px;
+}
+
+.conversationItem span {
+  font-size: 12px;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.conversationItem.active {
+  border-color: #93c5fd;
+  background: #eff6ff;
+}
+
+.chatArea {
+  display: flex;
+  flex-direction: column;
+}
+
+.chatHeader {
+  border-bottom: 1px solid #e2e8f0;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chatHeader span {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.chatMessages {
+  padding: 12px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  background: #f8fafc;
+}
+
+.messageBubble {
+  max-width: 70%;
+  border-radius: 10px;
+  padding: 8px 10px;
+  background: #dbeafe;
+  margin-left: auto;
+}
+
+.messageBubble small {
+  color: #64748b;
+  font-size: 10px;
+}
+
+.messageBubble p {
+  margin: 4px 0;
+  color: #0f172a;
+}
+
+.messageBubble span {
+  font-size: 11px;
+  color: #475569;
+}
+
+.chatComposer {
+  border-top: 1px solid #e2e8f0;
+  padding: 10px;
+  display: flex;
+  gap: 8px;
+}
+
+.chatComposer input {
+  flex: 1;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.backToList {
+  align-self: flex-start;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.emptyConversations,
+.messagesPlaceholder {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.calendarPanel {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.calendarPanel h2 {
+  margin: 4px 0 12px;
+  font-size: 16px;
+}
+
+.leftPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.monthWidget {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.monthHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  text-transform: capitalize;
+  color: #334155;
+}
+
+.monthControls {
+  display: flex;
+  gap: 4px;
+}
+
+.monthControls button {
+  background: #f1f5f9;
+  color: #334155;
+  padding: 3px 8px;
+  border: 1px solid #cbd5e1;
+}
+
+.weekLabels {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  font-size: 11px;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.weekLabels span {
+  text-align: center;
+}
+
+.monthGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 3px;
+}
+
+.dayCell {
+  background: transparent;
+  color: #334155;
+  padding: 6px 0;
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.dayCell.inactive {
+  color: #94a3b8;
+}
+
+.dayCell.today {
+  background: #2563eb;
+  color: #fff;
+}
+
+.sideCard {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 10px;
+}
+
+.sideCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  color: #334155;
+}
+
+.sideLine {
+  display: flex;
+  justify-content: space-between;
+  color: #64748b;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 6px;
+  margin-top: 6px;
+  font-size: 13px;
+}
+
+.agendaDentistItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #475569;
+  padding: 5px 0;
+}
+
+.agendaColor {
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+}
+
+.footerInfo {
+  padding: 0 10px 10px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.mainSchedule {
+  padding: 0;
+  overflow: hidden;
+}
+
+.scheduleHeader {
+  height: 56px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+}
+
+.flowLegend {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 8px 12px;
+  border-bottom: 1px solid #e5edf5;
+  background: #fafcff;
+}
+
+.flowLegendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #334155;
+  font-weight: 600;
+}
+
+.legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+}
+
+.scheduleHeader h2 {
+  margin: 0;
+  text-transform: capitalize;
+  color: #334155;
+}
+
+.scheduleControls {
+  display: flex;
+  gap: 6px;
+}
+
+.scheduleControls button {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+  padding: 7px 13px;
+  border-radius: 10px;
+}
+
+.scheduleControls .viewActive {
+  background: #e8f1ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.addButton {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  padding: 0;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.mainSchedule .rbc-calendar {
+  padding: 0 6px 6px;
+}
+
+.appointmentPopover {
+  position: fixed;
+  z-index: 20;
+  width: 320px;
+  background: #fff;
+  border: 1px solid #dbe3ed;
+  border-radius: 12px;
+  box-shadow: 0 12px 24px rgba(15, 23, 42, 0.18);
+  padding: 12px;
+}
+
+.popoverClose {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  background: transparent;
+  color: #64748b;
+  font-size: 20px;
+  padding: 0;
+}
+
+.popoverHeader {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.popoverHeader strong {
+  color: #0f172a;
+  font-size: 20px;
+  line-height: 1.2;
+}
+
+.popoverHeader p {
+  margin: 2px 0 0;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.avatarCircle {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e2e8f0;
+  color: #1e293b;
+  font-weight: 700;
+}
+
+.popoverMiniInfo {
+  margin-top: 8px;
+  color: #475569;
+  font-size: 12px;
+}
+
+.popoverActions {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.ghostAction {
+  background: #f8fafc;
+  color: #334155;
+  border: 1px solid #d2dbe7;
+  font-size: 12px;
+  padding: 8px;
+}
+
+.primaryAction {
+  margin-top: 10px;
+  width: 100%;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 600;
+}
+
+.primaryAction.dangerConfirm {
+  background: #b91c1c;
+}
+
+.flowButtons {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.flowBtn {
+  border: 1px solid #d2dbe7;
+  color: #334155;
+  font-size: 12px;
+  padding: 8px;
+  background: #f8fafc;
+}
+
+.flowBtn.arrived {
+  background: #fef3c7;
+}
+
+.flowBtn.inService {
+  background: #bfdbfe;
+}
+
+.flowBtn.attended {
+  background: #bbf7d0;
+}
+
+.flowBtn.noShow {
+  background: #fecaca;
+}
+
+.popoverMeta {
+  margin-top: 10px;
+  border-top: 1px solid #edf2f7;
+  padding-top: 10px;
+  font-size: 12px;
+  color: #475569;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.popoverStatus {
+  margin-top: 8px;
+  background: #f8fafc;
+  border: 1px solid #dbe3ed;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: #334155;
+  font-weight: 600;
+}
+
+.mainSchedule .rbc-time-header,
+.mainSchedule .rbc-time-content {
+  border-color: #e2e8f0;
+}
+
+.mainSchedule .rbc-time-view {
+  border-top: 1px solid #dbe3ed;
+}
+
+.mainSchedule .rbc-time-header-content .rbc-header {
+  font-weight: 700;
+  color: #475569;
+  background: #f8fafc;
+  border-bottom: 1px solid #dbe3ed;
+  padding: 8px 4px;
+}
+
+.mainSchedule .rbc-time-content > * + * > * {
+  border-left-color: #d9e2ec;
+}
+
+.mainSchedule .rbc-day-bg + .rbc-day-bg {
+  border-left: 1px solid #d9e2ec;
+}
+
+.mainSchedule .rbc-timeslot-group {
+  min-height: 62px;
+  border-bottom: 1px solid #dbe3ed;
+}
+
+.mainSchedule .rbc-day-slot .rbc-time-slot {
+  border-top: 1px dashed #dde6f0;
+}
+
+.mainSchedule .rbc-time-gutter .rbc-time-slot {
+  border-top: 1px solid #edf2f7;
+}
+
+.mainSchedule .rbc-day-slot .rbc-timeslot-group:nth-child(odd) {
+  background: #fcfdff;
+}
+
+.mainSchedule .rbc-day-slot .rbc-timeslot-group:nth-child(5) {
+  border-top: 2px solid #c7d2e3;
+}
+
+.mainSchedule .rbc-label {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.mainSchedule .rbc-time-gutter {
+  background: #f8fafc;
+}
+
+.mainSchedule .rbc-day-slot .rbc-events-container {
+  margin-right: 2px;
+}
+
+.mainSchedule .rbc-event {
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+  padding: 2px 4px;
+}
+
+.eventCardContent {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1.15;
+}
+
+.eventTime {
+  font-size: 10px;
+  color: #334155;
+  font-weight: 600;
+}
+
+.eventPatient {
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.eventDentist {
+  font-size: 11px;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 1024px) {
+  .contentGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .topbar {
+    flex-wrap: wrap;
+  }
+
+  .messagesGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .appointmentPopover {
+    width: min(320px, calc(100vw - 24px));
+  }
+}
+
+@media (max-width: 900px) {
+  button,
+  .navBtn,
+  .scheduleControls button,
+  .mobileSidebarToggle,
+  .conversationItem,
+  .ghostAction,
+  .primaryAction,
+  .flowBtn,
+  .backToList {
+    min-height: 44px;
+  }
+
+  input,
+  select,
+  textarea,
+  .tokenInput,
+  .formInput,
+  .chatComposer input {
+    min-height: 44px;
+    font-size: 16px;
+  }
+
+  .topbar {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .brand {
+    font-size: 30px;
+  }
+
+  .mainNav {
+    width: 100%;
+    overflow-x: auto;
+    order: 3;
+    padding-bottom: 2px;
+  }
+
+  .topIcons {
+    display: none;
+  }
+
+  .authBox {
+    width: 100%;
+    order: 4;
+  }
+
+  .tokenInput {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .contentGrid {
+    padding: 8px;
+    gap: 8px;
+  }
+
+  .mobileSidebarToggle {
+    display: inline-flex;
+    width: 100%;
+    justify-content: center;
+    align-items: center;
+    background: #2563eb;
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .leftPanel.mobilePanel {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .scheduleHeader {
+    height: auto;
+    padding: 8px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .scheduleControls {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .scheduleHeader h2 {
+    width: 100%;
+    order: 3;
+    font-size: 20px;
+    text-align: center;
+  }
+
+  .flowLegend {
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .flowLegendItem {
+    min-width: max-content;
+  }
+
+  .mainSchedule .rbc-calendar {
+    padding: 0 2px 4px;
+  }
+
+  .mainSchedule .rbc-label {
+    font-size: 11px;
+  }
+
+  .scheduleModal {
+    width: calc(100vw - 20px);
+    max-height: calc(100vh - 20px);
+    overflow-y: auto;
+    padding: 12px;
+  }
+
+  .scheduleModalHeader strong {
+    font-size: 18px;
+  }
+
+  .scheduleModalActions {
+    position: sticky;
+    bottom: 0;
+    background: #fff;
+    padding-top: 8px;
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .scheduleModalActions .ghostAction,
+  .scheduleModalActions .primaryAction {
+    width: 100%;
+  }
+
+  .appointmentPopover {
+    left: 10px !important;
+    right: 10px;
+    top: auto !important;
+    bottom: 10px;
+    width: auto;
+    max-height: 62vh;
+    overflow-y: auto;
+  }
+
+  .messagesPanel {
+    padding: 8px;
+    min-height: 82vh;
+  }
+
+  .messagesHeader h2 {
+    font-size: 24px;
+  }
+
+  .messagesTabs {
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .conversationsList {
+    min-height: 60vh;
+  }
+
+  .chatArea {
+    min-height: 60vh;
+  }
+
+  .chatComposer {
+    flex-direction: column;
+  }
+
+  .chatComposer button {
+    width: 100%;
+  }
+
+  .conversationItem {
+    padding: 10px;
+  }
+
+  .flowButtons,
+  .popoverActions {
+    grid-template-columns: 1fr;
+  }
+
+  .monthControls button,
+  .dayCell,
+  .agendaDentistItem {
+    min-height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .messageBubble {
+    max-width: 90%;
+  }
+}
+
+@media (max-width: 640px) {
+  .brand {
+    font-size: 28px;
+  }
+
+  .navBtn {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+}

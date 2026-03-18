@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { format } from 'date-fns';
+import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { api, setAuthToken } from './api';
 
@@ -121,29 +121,77 @@ function maskZipCode(value: string) {
   return digits.replace(/(\d{5})(\d{1,3})$/, '$1-$2');
 }
 
+async function lookupCep(cep: string) {
+  const digits = onlyDigits(cep);
+  if (digits.length !== 8) return null;
+  try {
+    const response = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+    const data = await response.json();
+    if (data.erro) return null;
+    return {
+      logradouro: data.logradouro ?? '',
+      bairro: data.bairro ?? '',
+      cidade: data.localidade ?? '',
+      estado: data.uf ?? ''
+    };
+  } catch {
+    return null;
+  }
+}
+
 export function PatientsCenter({ token, onError }: PatientsCenterProps) {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [query, setQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<'search' | 'aniversariantes' | 'retornos'>('search');
   const [form, setForm] = useState<PatientForm>(emptyForm);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
+  const [cepLookupStatus, setCepLookupStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [cepLookupError, setCepLookupError] = useState<string | null>(null);
+
+  const birthdaysCount = useMemo(() => {
+    const month = new Date().getMonth();
+    return patients.filter((patient) => {
+      if (!patient.data_nascimento) return false;
+      return new Date(patient.data_nascimento).getMonth() === month;
+    }).length;
+  }, [patients]);
 
   const filteredPatients = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
+
+    const baseList = patients.filter((patient) => {
+      if (activeTab === 'aniversariantes') {
+        if (!patient.data_nascimento) return false;
+        const birthMonth = new Date(patient.data_nascimento).getMonth();
+        return birthMonth === new Date().getMonth();
+      }
+
+      if (activeTab === 'retornos') {
+        // Placeholder: use same list for now. Later we can filter by next appointment / tags.
+        return true;
+      }
+
+      return true;
+    });
+
     if (!normalizedQuery) {
-      return patients;
+      return baseList;
     }
 
-    return patients.filter((patient) => {
+    return baseList.filter((patient) => {
       const name = patient.nome.toLowerCase();
       const phone = patient.celular?.toLowerCase() ?? patient.telefone?.toLowerCase() ?? '';
-      const email = patient.email?.toLowerCase() ?? '';
-      return name.includes(normalizedQuery) || phone.includes(normalizedQuery) || email.includes(normalizedQuery);
+      const cpf = patient.cpf?.toLowerCase() ?? '';
+      return (
+        name.includes(normalizedQuery) ||
+        phone.includes(normalizedQuery) ||
+        cpf.includes(normalizedQuery)
+      );
     });
-  }, [patients, query]);
-
+  }, [patients, query, activeTab]);
   async function loadPatients() {
     if (!token) {
       setPatients([]);
@@ -160,6 +208,47 @@ export function PatientsCenter({ token, onError }: PatientsCenterProps) {
     } finally {
       setLoading(false);
     }
+  }
+
+  function getInitials(name: string) {
+    const parts = name.trim().split(' ').filter(Boolean);
+    if (parts.length === 0) return '';
+    if (parts.length === 1) return parts[0].slice(0, 1).toUpperCase();
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+
+  function formatLastConsultation(patient: Patient) {
+    const date = patient.created_at ? new Date(patient.created_at) : null;
+    if (!date || Number.isNaN(date.getTime())) return 'Última consulta: N/A';
+
+    const distance = formatDistanceToNow(date, { locale: ptBR, addSuffix: true });
+    return `Última consulta: ${format(date, 'dd/MM/yyyy', { locale: ptBR })} - aproximadamente ${distance}`;
+  }
+
+  function downloadPatientList(formatType: 'csv' | 'excel') {
+    const rows = filteredPatients.map((patient) => ({
+      Nome: patient.nome,
+      CPF: patient.cpf ? maskCpf(patient.cpf) : '',
+      Celular: patient.celular ? maskPhone(patient.celular) : '',
+      Email: patient.email ?? '',
+      Categoria: patient.categoria ?? '',
+      'Data de Nascimento': patient.data_nascimento
+        ? format(new Date(patient.data_nascimento), 'dd/MM/yyyy', { locale: ptBR })
+        : '',
+      'Cadastro': format(new Date(patient.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })
+    }));
+
+    const header = Object.keys(rows[0] ?? {}).join(';');
+    const body = rows.map((row) => Object.values(row).map((value) => `${value}`).join(';')).join('\n');
+    const csv = [header, body].filter(Boolean).join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `pacientes.${formatType === 'excel' ? 'xlsx' : 'csv'}`;
+    link.click();
+    URL.revokeObjectURL(url);
   }
 
   async function submitPatient(event: FormEvent<HTMLFormElement>) {
@@ -240,8 +329,9 @@ export function PatientsCenter({ token, onError }: PatientsCenterProps) {
   setFormErrors({});
       setShowCreateModal(false);
       await loadPatients();
-    } catch {
-      onError('Falha ao cadastrar paciente.');
+    } catch (error: any) {
+      const message = error?.response?.data?.message ?? 'Falha ao cadastrar paciente.';
+      onError(message);
     } finally {
       setSubmitting(false);
     }
@@ -260,61 +350,84 @@ export function PatientsCenter({ token, onError }: PatientsCenterProps) {
       <header className="patientsHeader">
         <h2>Pacientes</h2>
         <button className="primaryAction" onClick={() => { setShowCreateModal(true); setFormErrors({}); }}>
-          Inclusão de paciente
+          Cadastrar paciente
         </button>
       </header>
 
-      <>
+      <div className="patientsTabs">
+        <button
+          className={activeTab === 'search' ? 'active' : ''}
+          onClick={() => setActiveTab('search')}
+        >
+          Buscar
+        </button>
+        <button
+          className={activeTab === 'aniversariantes' ? 'active' : ''}
+          onClick={() => setActiveTab('aniversariantes')}
+        >
+          Aniversariantes {birthdaysCount > 0 ? `(${birthdaysCount})` : ''}
+        </button>
+        <button
+          className={activeTab === 'retornos' ? 'active' : ''}
+          onClick={() => setActiveTab('retornos')}
+        >
+          Retornos semestrais
+        </button>
+      </div>
+
+      <div className="patientsSearchCard">
         <div className="patientsToolbar">
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Buscar por nome, telefone ou email"
+            placeholder="Busque por nome, telefone ou CPF"
           />
-          <button onClick={loadPatients} disabled={loading}>{loading ? 'Atualizando...' : 'Atualizar'}</button>
+          <div className="patientsToolbarActions">
+            <button type="button" className="secondary" onClick={() => onError('Filtro de categoria ainda não implementado.')}>Filtrar por categoria</button>
+            <button onClick={loadPatients} disabled={loading}>{loading ? 'Atualizando...' : 'Atualizar'}</button>
+          </div>
         </div>
 
-        <div className="patientsTableWrapper">
-          <table className="patientsTable">
-            <thead>
-              <tr>
-                <th>Nome</th>
-                <th>Celular</th>
-                <th>CPF</th>
-                <th>Categoria</th>
-                <th>Email</th>
-                <th>Nascimento</th>
-                <th>Cadastro</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredPatients.length === 0 ? (
-                <tr>
-                  <td colSpan={7} className="emptyPatients">
-                    Nenhum paciente encontrado.
-                  </td>
-                </tr>
-              ) : (
-                filteredPatients.map((patient) => (
-                  <tr key={patient.id}>
-                    <td>{patient.nome}</td>
-                    <td>{patient.celular ? maskPhone(patient.celular) : '-'}</td>
-                    <td>{patient.cpf ? maskCpf(patient.cpf) : '-'}</td>
-                    <td>{patient.categoria ?? '-'}</td>
-                    <td>{patient.email ?? '-'}</td>
-                    <td>
-                      {patient.data_nascimento
-                        ? format(new Date(patient.data_nascimento), 'dd/MM/yyyy', { locale: ptBR })
-                        : '-'}
-                    </td>
-                    <td>{format(new Date(patient.created_at), 'dd/MM/yyyy HH:mm', { locale: ptBR })}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <div className="patientListWrapper">
+          {filteredPatients.length === 0 ? (
+            <div className="emptyPatients">Nenhum paciente encontrado.</div>
+          ) : (
+            <div className="patientList">
+              {filteredPatients.map((patient) => (
+                <div key={patient.id} className="patientCard">
+                  <div className="patientCardMain">
+                    <div className="patientAvatar">{getInitials(patient.nome)}</div>
+                    <div className="patientCardInfo">
+                      <div className="patientName">{patient.nome}</div>
+                      <div className="patientSubtitle">{formatLastConsultation(patient)}</div>
+                    </div>
+                  </div>
+
+                  <div className="patientCardMeta">
+                    <div className="metaItem">{patient.cpf ? maskCpf(patient.cpf) : '-'}</div>
+                    <div className="metaItem">
+                      {patient.celular ? maskPhone(patient.celular) : '-'}
+                      {patient.celular ? (
+                        <span style={{ marginLeft: 6, opacity: 0.7 }} title="WhatsApp">
+                          📱
+                        </span>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      </>
+
+        <div className="patientsFooter">
+          <div>Mostrando {filteredPatients.length} de {patients.length} resultados</div>
+          <div className="exportLinks">
+            <button type="button" onClick={() => downloadPatientList('excel')}>Excel</button>
+            <button type="button" onClick={() => downloadPatientList('csv')}>CSV</button>
+          </div>
+        </div>
+      </div>
 
       {showCreateModal ? (
         <div className="scheduleModalOverlay" onClick={() => setShowCreateModal(false)}>
@@ -322,6 +435,10 @@ export function PatientsCenter({ token, onError }: PatientsCenterProps) {
             <div className="scheduleModalHeader">
               <strong>Inclusão de paciente</strong>
               <button type="button" className="popoverClose" onClick={() => setShowCreateModal(false)}>×</button>
+            </div>
+
+            <div style={{ marginBottom: 12, color: '#475569', fontSize: 13 }}>
+              Campos obrigatórios: <strong>Nome</strong> e <strong>Celular</strong>.
             </div>
 
             <div className="patientForm">
@@ -582,9 +699,31 @@ export function PatientsCenter({ token, onError }: PatientsCenterProps) {
                       className={formErrors.enderecoCep ? 'inputError' : ''}
                       value={form.enderecoCep}
                       onChange={(event) => setForm((prev) => ({ ...prev, enderecoCep: maskZipCode(event.target.value) }))}
+                      onBlur={async () => {
+                        const digits = onlyDigits(form.enderecoCep);
+                        if (digits.length !== 8) return;
+                        setCepLookupStatus('loading');
+                        setCepLookupError(null);
+                        const result = await lookupCep(digits);
+                        if (!result) {
+                          setCepLookupStatus('error');
+                          setCepLookupError('Não foi possível buscar o CEP.');
+                          return;
+                        }
+                        setCepLookupStatus('success');
+                        setForm((prev) => ({
+                          ...prev,
+                          enderecoLogradouroNumero: prev.enderecoLogradouroNumero || result.logradouro,
+                          enderecoBairro: result.bairro,
+                          enderecoCidade: result.cidade,
+                          enderecoEstado: result.estado
+                        }));
+                      }}
                       placeholder="00000-000"
                     />
                     {formErrors.enderecoCep ? <small className="fieldErrorText">{formErrors.enderecoCep}</small> : null}
+                    {cepLookupStatus === 'loading' ? <small className="fieldErrorText">Buscando CEP...</small> : null}
+                    {cepLookupStatus === 'error' && cepLookupError ? <small className="fieldErrorText">{cepLookupError}</small> : null}
                   </label>
 
                   <label>
