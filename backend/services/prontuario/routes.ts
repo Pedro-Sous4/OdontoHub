@@ -28,10 +28,11 @@ prontuarioRouter.get('/records/:patientId', async (req: AuthRequest, res) => {
   );
 
   const toothConditions = await query(
-    `SELECT id, tenant_id, tooth_id, patient_id, condicao, data
-     FROM tooth_conditions
-     WHERE tenant_id = $1 AND patient_id = $2
-     ORDER BY data DESC`,
+    `SELECT tc.id, tc.tenant_id, tc.tooth_id, tc.patient_id, tc.condicao, tc.data, t.numero_dente
+     FROM tooth_conditions tc
+     JOIN teeth t ON tc.tooth_id = t.id
+     WHERE tc.tenant_id = $1 AND tc.patient_id = $2
+     ORDER BY tc.data DESC`,
     [tenantId, patientId]
   );
 
@@ -82,13 +83,31 @@ prontuarioRouter.post('/records/:recordId/evolutions', requireRole(['admin', 'de
 prontuarioRouter.post('/patients/:patientId/tooth-conditions', requireRole(['admin', 'dentist']), async (req: AuthRequest, res) => {
   const tenantId = req.auth!.tenantId;
   const { patientId } = req.params;
-  const { toothId, condicao, data } = req.body;
+  const { toothId, condicao, data } = req.body; // toothId is actually the number like '18' here as per MVP
 
+  // 1. Ensure the tooth exists in "teeth" for this tenant
+  let toothUuid = '';
+  const existingTooth = await query<{ id: string }>(
+    `SELECT id FROM teeth WHERE tenant_id = $1 AND numero_dente = $2`,
+    [tenantId, toothId]
+  );
+
+  if (existingTooth.rows.length > 0) {
+    toothUuid = existingTooth.rows[0].id;
+  } else {
+    const newTooth = await query<{ id: string }>(
+      `INSERT INTO teeth (tenant_id, numero_dente) VALUES ($1, $2) RETURNING id`,
+      [tenantId, toothId]
+    );
+    toothUuid = newTooth.rows[0].id;
+  }
+
+  // 2. Insert the condition
   const result = await query<{ id: string }>(
     `INSERT INTO tooth_conditions (tenant_id, tooth_id, patient_id, condicao, data)
      VALUES ($1, $2, $3, $4, $5)
      RETURNING id`,
-    [tenantId, toothId, patientId, condicao, data ?? new Date().toISOString()]
+    [tenantId, toothUuid, patientId, condicao, data ?? new Date().toISOString()]
   );
 
   return res.status(201).json({ id: result.rows[0].id });

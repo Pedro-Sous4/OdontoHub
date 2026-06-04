@@ -1,17 +1,21 @@
-$ErrorActionPreference = 'Stop'
-
 param(
   [string]$GatewayBaseUrl = 'http://localhost:3000'
 )
+
+$ErrorActionPreference = 'Stop'
 
 function Step($message) {
   Write-Host "`n==> $message" -ForegroundColor Cyan
 }
 
-$tenantSuffix = Get-Date -Format 'yyyyMMddHHmmss'
+# Suffix with less digits to avoid issues with CNPJ and CPF
+$tenantSuffix = (Get-Date -Format 'HHmmss') + (Get-Random -Minimum 10 -Maximum 99)
+$cnpj = "99999999{0:D6}" -f (Get-Random -Maximum 1000000)
+$cpf = "99999999{0:D3}" -f (Get-Random -Maximum 1000)
+
 $registerBody = @{
   nomeClinica = "Clinica Smoke $tenantSuffix"
-  cnpj = "9900000000$tenantSuffix"
+  cnpj = $cnpj
   emailClinica = "clinica.$tenantSuffix@teste.local"
   nome = 'Admin Smoke'
   email = "admin.$tenantSuffix@teste.local"

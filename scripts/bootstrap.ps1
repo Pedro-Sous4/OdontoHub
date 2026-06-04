@@ -1,10 +1,18 @@
-$ErrorActionPreference = 'Stop'
-
 param(
-  [string]$GatewayBaseUrl = 'http://localhost:3000',
-  [int]$HealthTimeoutSeconds = 240,
+  [string]$GatewayBaseUrl,
+  [int]$HealthTimeoutSeconds,
   [switch]$Full
 )
+
+$ErrorActionPreference = 'Stop'
+
+# Set default values manually to avoid parsing issues
+if (-not $PSBoundParameters.ContainsKey('GatewayBaseUrl')) {
+  $GatewayBaseUrl = 'http://localhost:3000'
+}
+if (-not $PSBoundParameters.ContainsKey('HealthTimeoutSeconds')) {
+  $HealthTimeoutSeconds = 240
+}
 
 function Info($message) {
   Write-Host "[bootstrap] $message" -ForegroundColor Cyan
@@ -34,8 +42,6 @@ try {
 $composeArgs = @('up', '-d', '--build')
 if ($Full) {
   Info 'Modo full (microserviços + worker) ativado.'
-  $composeArgs += '--profile'
-  $composeArgs += 'full'
 } else {
   Info 'Modo leve (API Gateway + Frontend + infra) ativado.'
 }

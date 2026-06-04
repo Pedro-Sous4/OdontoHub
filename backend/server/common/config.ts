@@ -15,7 +15,9 @@ export const config = {
     whatsapp: Number(process.env.WHATSAPP_SERVICE_PORT ?? 3005),
     googleSync: Number(process.env.GOOGLE_SYNC_SERVICE_PORT ?? 3006),
     notification: Number(process.env.NOTIFICATION_SERVICE_PORT ?? 3009),
-    worker: Number(process.env.WORKER_SERVICE_PORT ?? 3010)
+    worker: Number(process.env.WORKER_SERVICE_PORT ?? 3010),
+    assistant: Number(process.env.ASSISTANT_SERVICE_PORT ?? 3011),
+    stock: Number(process.env.STOCK_SERVICE_PORT ?? 3012)
   },
   jwtSecret: process.env.JWT_SECRET ?? 'change_me',
   databaseUrl: process.env.DATABASE_URL ?? 'postgres://postgres:postgres@localhost:5432/odontohub',

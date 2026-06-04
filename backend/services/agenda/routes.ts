@@ -10,11 +10,45 @@ export const agendaRouter = Router();
 agendaRouter.get('/dentists', async (req: AuthRequest, res) => {
   const tenantId = req.auth!.tenantId;
   const result = await query(
-    'SELECT id, tenant_id, nome, especialidade, cor_agenda FROM dentists WHERE tenant_id = $1 ORDER BY nome ASC',
+    'SELECT id, nome, especialidade, cor_agenda FROM dentists WHERE tenant_id = $1 ORDER BY nome',
     [tenantId]
   );
-
   return res.json(result.rows);
+});
+
+agendaRouter.get('/dentists/:id/schedules', async (req: AuthRequest, res) => {
+  const tenantId = req.auth!.tenantId;
+  const { id } = req.params;
+  const result = await query(
+    'SELECT dia_semana, hora_inicio, hora_fim FROM dentist_schedules WHERE tenant_id = $1 AND dentist_id = $2 ORDER BY dia_semana ASC',
+    [tenantId, id]
+  );
+  return res.json(result.rows);
+});
+
+agendaRouter.put('/dentists/:id/schedules', requireRole(['admin', 'dentist', 'receptionist']), async (req: AuthRequest, res) => {
+  const tenantId = req.auth!.tenantId;
+  const { id } = req.params;
+  const schedules: { dia_semana: number; hora_inicio: string; hora_fim: string }[] = req.body.schedules;
+  console.log(`PUT /dentists/${id}/schedules`, req.body);
+  
+  try {
+    await query('BEGIN');
+    await query('DELETE FROM dentist_schedules WHERE tenant_id = $1 AND dentist_id = $2', [tenantId, id]);
+    
+    for (const s of schedules) {
+      await query(
+        'INSERT INTO dentist_schedules (tenant_id, dentist_id, dia_semana, hora_inicio, hora_fim) VALUES ($1, $2, $3, $4, $5)',
+        [tenantId, id, s.dia_semana, s.hora_inicio, s.hora_fim]
+      );
+    }
+    await query('COMMIT');
+    return res.json({ message: 'Horários atualizados com sucesso' });
+  } catch (error) {
+    await query('ROLLBACK');
+    console.error('Erro ao atualizar horarios:', error);
+    return res.status(500).json({ message: 'Erro ao atualizar horários' });
+  }
 });
 
 agendaRouter.get('/appointments', async (req: AuthRequest, res) => {
@@ -34,7 +68,8 @@ agendaRouter.get('/appointments', async (req: AuthRequest, res) => {
             a.created_at,
             p.nome AS patient_name,
             p.telefone AS phone,
-            d.nome AS dentist_name
+            d.nome AS dentist_name,
+            (SELECT procedure_id FROM appointment_procedures WHERE appointment_id = a.id AND tenant_id = a.tenant_id LIMIT 1) AS procedure_id
      FROM appointments a
      JOIN patients p ON p.id = a.patient_id AND p.tenant_id = a.tenant_id
      JOIN dentists d ON d.id = a.dentist_id AND d.tenant_id = a.tenant_id
@@ -103,8 +138,9 @@ agendaRouter.get('/appointments/intelligence', async (req: AuthRequest, res) => 
 });
 
 agendaRouter.post('/appointments', requireRole(['admin', 'receptionist', 'dentist']), async (req: AuthRequest, res) => {
-  const { patientId, dentistId, roomId, startTime, endTime, status } = req.body;
+  const { patientId, dentistId, roomId, startTime, endTime, status, procedureId, procedure_id } = req.body;
   const tenantId = req.auth!.tenantId;
+  const actualProcedureId = procedureId || procedure_id;
 
   const conflict = await query(
     `SELECT *
@@ -128,6 +164,23 @@ agendaRouter.post('/appointments', requireRole(['admin', 'receptionist', 'dentis
   );
 
   const appointmentId = created.rows[0].id;
+
+  if (actualProcedureId) {
+    // Fetch default duration and price for the procedure
+    const procResult = await query<{ duracao_padrao: number; valor: number }>(
+      'SELECT duracao_padrao, valor FROM procedures WHERE id = $1 AND tenant_id = $2',
+      [actualProcedureId, tenantId]
+    );
+    
+    const duration = procResult.rows[0]?.duracao_padrao ?? 30;
+    const value = procResult.rows[0]?.valor ?? 0;
+
+    await query(
+      `INSERT INTO appointment_procedures (tenant_id, appointment_id, procedure_id, duracao, valor)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [tenantId, appointmentId, actualProcedureId, duration, value]
+    );
+  }
 
   const details = await query<{
     patient_name: string;
@@ -166,7 +219,7 @@ agendaRouter.post('/appointments', requireRole(['admin', 'receptionist', 'dentis
     action: 'create',
     entity: 'appointments',
     entityId: appointmentId,
-    payload: { patientId, dentistId, startTime, endTime }
+    payload: { patientId, dentistId, startTime, endTime, procedureId: actualProcedureId }
   });
 
   return res.status(201).json({ id: appointmentId });
@@ -174,10 +227,30 @@ agendaRouter.post('/appointments', requireRole(['admin', 'receptionist', 'dentis
 
 agendaRouter.get('/availability', async (req: AuthRequest, res) => {
   const tenantId = req.auth!.tenantId;
-  const { dentistId, date } = req.query as { dentistId: string; date: string };
-  const dayStart = new Date(`${date}T08:00:00.000Z`);
-  const dayEnd = new Date(`${date}T18:00:00.000Z`);
+  const { dentistId, date, duration } = req.query as { dentistId: string; date: string; duration?: string };
+  
+  // 1. Descobrir o dia da semana (0 = Domingo, 6 = Sábado)
+  // Como a data vem no formato YYYY-MM-DD, vamos pegar o UTC day
+  const [year, month, day] = date.split('-');
+  const diaSemana = new Date(Date.UTC(Number(year), Number(month) - 1, Number(day))).getUTCDay();
 
+  // 2. Buscar horário de trabalho deste dentista neste dia da semana
+  const schedResult = await query<{ hora_inicio: string; hora_fim: string }>(
+    `SELECT hora_inicio, hora_fim FROM dentist_schedules
+     WHERE tenant_id = $1 AND dentist_id = $2 AND dia_semana = $3`,
+    [tenantId, dentistId, diaSemana]
+  );
+
+  if (schedResult.rows.length === 0) {
+    // Dentista não trabalha neste dia
+    return res.json({ dentistId, date, busy: [], free_slots: [], window: null });
+  }
+
+  const { hora_inicio, hora_fim } = schedResult.rows[0];
+  const dayStart = new Date(`${date}T${hora_inicio}Z`); // Convertendo de TIME do postgres
+  const dayEnd = new Date(`${date}T${hora_fim}Z`);
+
+  // 3. Buscar consultas ocupadas
   const result = await query<{ start_time: string; end_time: string }>(
     `SELECT start_time, end_time
      FROM appointments
@@ -189,10 +262,40 @@ agendaRouter.get('/availability', async (req: AuthRequest, res) => {
     [tenantId, dentistId, dayEnd.toISOString(), dayStart.toISOString()]
   );
 
+  const busy = result.rows;
+  
+  // 4. Calcular os slots livres baseado na duração solicitada
+  const durMinutes = duration ? parseInt(duration, 10) : 30; // Padrão 30 min
+  const durMs = durMinutes * 60000;
+  
+  const freeSlots: { start: string; end: string }[] = [];
+  let currentTime = dayStart.getTime();
+
+  for (const block of busy) {
+    const bStart = new Date(block.start_time).getTime();
+    const bEnd = new Date(block.end_time).getTime();
+    
+    // Se há espaço antes deste bloco ocupado
+    while (currentTime + durMs <= bStart) {
+      freeSlots.push({ start: new Date(currentTime).toISOString(), end: new Date(currentTime + durMs).toISOString() });
+      currentTime += 30 * 60000; // Incrementa em passos de 30 min
+    }
+    // Pula para o fim do bloco ocupado
+    currentTime = Math.max(currentTime, bEnd);
+  }
+
+  // Preencher até o final do dia
+  while (currentTime + durMs <= dayEnd.getTime()) {
+    freeSlots.push({ start: new Date(currentTime).toISOString(), end: new Date(currentTime + durMs).toISOString() });
+    currentTime += 30 * 60000;
+  }
+
   return res.json({
     dentistId,
     date,
-    busy: result.rows,
+    duration: durMinutes,
+    busy,
+    free_slots: freeSlots,
     window: { start: dayStart.toISOString(), end: dayEnd.toISOString() }
   });
 });
@@ -260,12 +363,49 @@ agendaRouter.put('/appointments/:id/cancel', requireRole(['admin', 'receptionist
   return res.json({ message: 'Consulta cancelada' });
 });
 
+agendaRouter.delete('/appointments/:id', requireRole(['admin', 'receptionist']), async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const tenantId = req.auth!.tenantId;
+
+    // Delete all dependencies to prevent FK constraint issues
+    await query('DELETE FROM appointment_procedures WHERE appointment_id = $1 AND tenant_id = $2', [id, tenantId]);
+    await query('DELETE FROM appointment_history WHERE appointment_id = $1 AND tenant_id = $2', [id, tenantId]);
+    await query('DELETE FROM appointment_notes WHERE appointment_id = $1 AND tenant_id = $2', [id, tenantId]);
+    await query('DELETE FROM appointment_reminders WHERE appointment_id = $1 AND tenant_id = $2', [id, tenantId]);
+    await query('DELETE FROM appointment_confirmations WHERE appointment_id = $1 AND tenant_id = $2', [id, tenantId]);
+    await query('DELETE FROM message_logs WHERE appointment_id = $1 AND tenant_id = $2', [id, tenantId]);
+    
+    // Set foreign key references to null in table records where deleting is not desired
+    await query('UPDATE finance_transactions SET appointment_id = NULL WHERE appointment_id = $1 AND tenant_id = $2', [id, tenantId]);
+    await query('UPDATE clinical_records SET appointment_id = NULL WHERE appointment_id = $1 AND tenant_id = $2', [id, tenantId]);
+    await query('UPDATE vital_signs SET appointment_id = NULL WHERE appointment_id = $1 AND tenant_id = $2', [id, tenantId]);
+    await query('UPDATE tiss_guides SET appointment_id = NULL WHERE appointment_id = $1 AND tenant_id = $2', [id, tenantId]);
+
+    const result = await query('DELETE FROM appointments WHERE id = $1 AND tenant_id = $2', [id, tenantId]);
+
+    await logAudit({
+      tenantId,
+      userId: req.auth?.userId,
+      action: 'delete',
+      entity: 'appointments',
+      entityId: id
+    });
+
+    return res.json({ message: 'Consulta excluída com sucesso' });
+  } catch (error: any) {
+    console.error('ERROR deleting appointment:', error);
+    return res.status(500).json({ message: error.message || 'Erro ao excluir agendamento' });
+  }
+});
+
 agendaRouter.put('/appointments/:id/status', requireRole(['admin', 'receptionist', 'dentist']), async (req: AuthRequest, res) => {
   const { id } = req.params;
   const { status } = req.body as { status: string };
   const tenantId = req.auth!.tenantId;
 
   const allowed = new Set([
+    'pending_confirmation',
     'scheduled',
     'confirmed',
     'rescheduled',
@@ -280,7 +420,33 @@ agendaRouter.put('/appointments/:id/status', requireRole(['admin', 'receptionist
     return res.status(400).json({ message: 'Status inválido' });
   }
 
+  const current = await query<{
+    status: string;
+    patient_name: string;
+    telefone: string;
+    dentist_name: string;
+    start_time: string;
+    patient_id: string;
+  }>(
+    `SELECT a.status, p.nome AS patient_name, p.telefone, d.nome AS dentist_name, a.start_time, a.patient_id
+     FROM appointments a
+     JOIN patients p ON p.id = a.patient_id AND p.tenant_id = a.tenant_id
+     JOIN dentists d ON d.id = a.dentist_id AND d.tenant_id = a.tenant_id
+     WHERE a.id = $1 AND a.tenant_id = $2`,
+    [id, tenantId]
+  );
+
   await query('UPDATE appointments SET status = $1 WHERE id = $2 AND tenant_id = $3', [status, id, tenantId]);
+
+  if (current.rows[0] && current.rows[0].status === 'pending_confirmation' && (status === 'scheduled' || status === 'confirmed')) {
+    await enqueueWhatsAppReminder({
+      tenantId,
+      phoneNumber: current.rows[0].telefone,
+      patientId: current.rows[0].patient_id,
+      appointmentId: id,
+      message: `Olá ${current.rows[0].patient_name}, sua consulta com o(a) ${current.rows[0].dentist_name} no dia ${new Date(current.rows[0].start_time).toLocaleString('pt-BR')} foi confirmada!`
+    });
+  }
 
   await logAudit({
     tenantId,

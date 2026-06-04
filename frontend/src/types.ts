@@ -14,6 +14,7 @@ export interface Appointment {
   start_time: string;
   end_time: string;
   status:
+    | 'pending_confirmation'
     | 'scheduled'
     | 'confirmed'
     | 'rescheduled'
@@ -22,4 +23,6 @@ export interface Appointment {
     | 'in_service'
     | 'attended'
     | 'no_show';
+  procedure_id?: string;
 }
+

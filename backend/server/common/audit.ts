@@ -8,6 +8,13 @@ export async function logAudit(params: {
   entityId?: string;
   payload?: unknown;
 }) {
+  const isDevFallbackUser = params.tenantId === '00000000-0000-0000-0000-000000000001';
+  
+  if (isDevFallbackUser) {
+    console.log('[AUDIT] Ignorando log de auditoria para usuário fallback de dev.');
+    return;
+  }
+
   await query(
     `INSERT INTO audit_logs (tenant_id, user_id, action, entity, entity_id, payload)
      VALUES ($1, $2, $3, $4, $5, $6)`,

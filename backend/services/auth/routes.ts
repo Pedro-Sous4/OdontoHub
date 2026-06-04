@@ -25,6 +25,43 @@ authRouter.post('/register', async (req, res) => {
       [tenantId, nome, email, senhaHash, role ?? 'admin']
     );
 
+    // --- Seed: Dentista (o proprio admin como profissional) ---
+    await client.query(
+      `INSERT INTO dentists (tenant_id, nome, especialidade, cor_agenda)
+       VALUES ($1, $2, $3, $4)`,
+      [tenantId, nome, 'Clinico Geral', '#3b82f6']
+    );
+
+    // --- Seed: Sala padrao ---
+    await client.query(
+      `INSERT INTO rooms (tenant_id, nome) VALUES ($1, $2)`,
+      [tenantId, 'Consultorio 1']
+    );
+
+    // --- Seed: Procedimentos odontologicos padrao ---
+    const defaultProcedures = [
+      ['Consulta de Avaliacao',      30,   150.00],
+      ['Limpeza (Profilaxia)',       45,   200.00],
+      ['Restauracao Resina',         60,   250.00],
+      ['Extracao Simples',           45,   300.00],
+      ['Extracao de Siso',           90,   800.00],
+      ['Tratamento de Canal',        90,   900.00],
+      ['Clareamento Dental',         60,  1200.00],
+      ['Aplicacao de Fluor',         20,    80.00],
+      ['Raspagem Periodontal',       60,   350.00],
+      ['Instalacao de Aparelho',     90,  2500.00],
+      ['Manutencao de Aparelho',     30,   250.00],
+      ['Coroa Dentaria',             60,  1500.00],
+    ];
+
+    for (const [procNome, duracao, valor] of defaultProcedures) {
+      await client.query(
+        `INSERT INTO procedures (tenant_id, nome, duracao_padrao, valor)
+         VALUES ($1, $2, $3, $4)`,
+        [tenantId, procNome, duracao, valor]
+      );
+    }
+
     await client.query('COMMIT');
     const user = userResult.rows[0];
     const token = signJwt({ userId: user.id, tenantId, role: user.role });

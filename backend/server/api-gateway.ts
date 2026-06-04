@@ -28,7 +28,9 @@ const services = {
   tiss: hostFor('tiss-service', config.servicePorts.tiss),
   whatsapp: hostFor('whatsapp-service', config.servicePorts.whatsapp),
   google: hostFor('google-sync-service', config.servicePorts.googleSync),
-  notification: hostFor('notification-service', config.servicePorts.notification)
+  notification: hostFor('notification-service', config.servicePorts.notification),
+  assistant: hostFor('assistant-service', config.servicePorts.assistant),
+  stock: hostFor('stock-service', config.servicePorts.stock)
 };
 
 app.get('/health', (_req, res) => {
@@ -44,6 +46,8 @@ app.use('/api/tiss', createProxyMiddleware({ target: services.tiss, changeOrigin
 app.use('/api/whatsapp', createProxyMiddleware({ target: services.whatsapp, changeOrigin: true, ws: true, pathRewrite: { '^/api/whatsapp': '' } }));
 app.use('/api/google-sync', createProxyMiddleware({ target: services.google, changeOrigin: true, pathRewrite: { '^/api/google-sync': '' } }));
 app.use('/api/notifications', createProxyMiddleware({ target: services.notification, changeOrigin: true, pathRewrite: { '^/api/notifications': '' } }));
+app.use('/api/assistant', createProxyMiddleware({ target: services.assistant, changeOrigin: true, pathRewrite: { '^/api/assistant': '' } }));
+app.use('/api/stock', createProxyMiddleware({ target: services.stock, changeOrigin: true, pathRewrite: { '^/api/stock': '' } }));
 
 app.listen(config.apiGatewayPort, () => {
   console.log(`API Gateway ativo na porta ${config.apiGatewayPort}`);

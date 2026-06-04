@@ -1,3 +1,7 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
 body {
   margin: 0;
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
@@ -247,10 +251,12 @@ button:active {
 
 .scheduleModal {
   width: min(680px, calc(100vw - 30px));
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
   background: #fff;
   border: 1px solid #dbe3ed;
   border-radius: 12px;
-  padding: 16px;
+  padding: 24px;
   box-shadow: 0 16px 40px rgba(15, 23, 42, 0.25);
 }
 
@@ -347,7 +353,7 @@ button:active {
 }
 
 .contentSingle {
-  padding: 10px;
+  padding: 18px 24px;
 }
 
 .messagesPanel {
@@ -524,40 +530,52 @@ button:active {
   justify-content: space-between;
   gap: 10px;
   align-items: center;
-  padding: 14px 18px;
-  border-radius: 12px;
-  background: #1d4ed8;
-  color: #fff;
+  padding: 14px 0;
+  background: transparent;
+  color: #0f172a;
   margin-bottom: 18px;
+  border-bottom: 1px solid #e2e8f0;
 }
 
 .patientsHeader h2 {
   margin: 0;
-  color: #fff;
-  font-size: 22px;
+  color: #0f172a;
+  font-size: 24px;
+  font-weight: 700;
 }
 
 .patientsHeader .primaryAction {
-  background: #fff;
-  color: #1d4ed8;
+  background: #1d4ed8;
+  color: #fff;
 }
 
 .patientsTabs {
   display: flex;
-  gap: 8px;
+  gap: 24px;
+  border-bottom: 1px solid #e2e8f0;
+  margin-bottom: 16px;
 }
 
 .patientsTabs button {
-  border: 1px solid #cbd5e1;
-  background: #fff;
-  color: #475569;
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.patientsTabs button:hover {
+  color: #0f172a;
 }
 
 .patientsTabs button.active {
-  border-color: #93c5fd;
-  background: #eff6ff;
   color: #1d4ed8;
-  font-weight: 600;
+  border-bottom-color: #1d4ed8;
 }
 
 .patientsSearchCard {
@@ -779,11 +797,9 @@ button:active {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
-  position: sticky;
-  bottom: 0;
-  background: #fff;
   border-top: 1px solid #e2e8f0;
-  padding-top: 10px;
+  padding-top: 12px;
+  padding-bottom: 8px;
   margin-top: 4px;
 }
 
@@ -991,8 +1007,353 @@ button:active {
 
 .agendaColor {
   width: 9px;
-  height: 9px;
-  border-radius: 999px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+/* Patient Profile */
+.patientProfileContainer {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  min-height: 78vh;
+  padding: 18px;
+  max-width: min(1040px, 100%);
+  margin: 18px auto;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+  display: flex;
+  flex-direction: column;
+}
+
+.profileHeader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.profileInfo h2 {
+  margin: 0 0 6px 0;
+  color: #1e293b;
+  font-size: 24px;
+}
+
+.profileTags {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+  color: #475569;
+}
+
+.tagCategory {
+  background: #e0e7ff;
+  color: #3730a3;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.profileTabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.profileTabs button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #64748b;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.profileTabs button.active {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.profileTabs button:hover:not(.active) {
+  background: #f8fafc;
+}
+
+.profileContent {
+  flex: 1;
+}
+
+.evolutionsPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.addEvolutionBox {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #f8fafc;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.addEvolutionBox textarea {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 12px;
+  min-height: 80px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.addEvolutionBox button {
+  align-self: flex-end;
+}
+
+.timelineItem {
+  padding: 16px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.timelineItem:last-child {
+  border-bottom: none;
+}
+
+.timelineDate {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.timelineContent p {
+  margin: 0;
+  color: #334155;
+  line-height: 1.5;
+}
+
+/* Odontograma */
+.odontogramaPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 8px 0;
+}
+
+.odontogramaToolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  background: #f8fafc;
+  padding: 12px 16px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.toggleGroup {
+  display: flex;
+  background: #e2e8f0;
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.toggleGroup button {
+  background: transparent;
+  border: none;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #475569;
+  border-radius: 4px;
+  box-shadow: none;
+}
+
+.toggleGroup button.active {
+  background: #fff;
+  color: #0f172a;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.legendRow {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: #475569;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legendColor {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.chartWrapper {
+  display: flex;
+  justify-content: center;
+  padding: 32px 16px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.arcadaContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.arcadaRow {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.arcadaRow.middleGap {
+  margin-top: 16px;
+}
+
+.arcadaDivider {
+  width: 2px;
+  height: 60px;
+  background: #cbd5e1;
+}
+
+.toothQuadrant {
+  display: flex;
+  gap: 4px;
+}
+
+.toothItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.toothItem:hover {
+  background: #f1f5f9;
+}
+
+.toothItem.selected {
+  background: #e0e7ff;
+}
+
+.toothShape {
+  width: 32px;
+  height: 36px;
+  border-radius: 6px;
+  border: 2px solid #cbd5e1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.toothItem:hover .toothShape {
+  border-color: #94a3b8;
+}
+
+.toothItem.selected .toothShape {
+  border-color: #4f46e5;
+}
+
+.toothNumber {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.toothSpinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #fff;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.toothPopoverOverlay {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toothPopover {
+  background: #fff;
+  width: 260px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 10px 40px rgba(15, 23, 42, 0.15);
+  animation: fadeIn 0.15s ease-out;
+}
+
+.toothPopover h3 {
+  margin: 0 0 4px;
+  color: #1e293b;
+  font-size: 16px;
+}
+
+.toothPopover p {
+  margin: 0 0 16px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+.toothConditionList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.conditionBtn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  color: #334155;
+  font-size: 13px;
+  text-align: left;
+}
+
+.conditionBtn:hover {
+  background: #f1f5f9;
+}
+
+.conditionDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .footerInfo {
@@ -1080,7 +1441,7 @@ button:active {
 
 .appointmentPopover {
   position: fixed;
-  z-index: 20;
+  z-index: 50;
   width: 320px;
   background: #fff;
   border: 1px solid #dbe3ed;
@@ -1146,18 +1507,21 @@ button:active {
   background: #f8fafc;
   color: #334155;
   border: 1px solid #d2dbe7;
-  font-size: 12px;
-  padding: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 14px;
+  border-radius: 8px;
 }
 
 .primaryAction {
-  margin-top: 10px;
   background: #2563eb;
   color: #fff;
   font-weight: 600;
+  font-size: 13px;
   padding: 8px 14px;
-  border-radius: 10px;
+  border-radius: 8px;
   width: auto;
+  border: 1px solid transparent;
 }
 
 /* Use full width when inside form action groups */
@@ -1321,6 +1685,77 @@ button:active {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Settings */
+.settingsPanel {
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  background: #fff;
+  border-radius: 12px;
+  min-height: 80vh;
+}
+
+.settingsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.settingsCard {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.colorIndicator {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  margin-right: 12px;
+}
+
+.settingsCard .cardInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  margin-right: 12px;
+}
+
+.settingsCard .cardInfo strong {
+  font-size: 15px;
+  color: #1e293b;
+}
+
+.settingsCard .cardInfo span {
+  font-size: 13px;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.deleteBtn {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: none;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.deleteBtn:hover {
+  background: #fecaca;
+}
+
+.colorPicker {
+  height: 38px;
+  cursor: pointer;
 }
 
 @media (max-width: 1024px) {

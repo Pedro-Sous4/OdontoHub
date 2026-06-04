@@ -1,1 +1,1 @@
-{"root":["./src/app.tsx","./src/financecenter.tsx","./src/messagescenter.tsx","./src/patientscenter.tsx","./src/api.ts","./src/main.tsx","./src/types.ts","./src/vite-env.d.ts"],"version":"5.9.3"}
+{"root":["./src/app.tsx","./src/dentistschedulemodal.tsx","./src/financecenter.tsx","./src/messagescenter.tsx","./src/odontograma.tsx","./src/patientprofile.tsx","./src/patientscenter.tsx","./src/settingscenter.tsx","./src/stockcenter.tsx","./src/whatsappsettings.tsx","./src/api.ts","./src/main.tsx","./src/types.ts","./src/vite-env.d.ts"],"version":"5.9.3"}

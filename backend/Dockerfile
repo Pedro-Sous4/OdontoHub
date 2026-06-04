@@ -1,8 +1,8 @@
 FROM node:20-alpine
 
 WORKDIR /app
-# Install build tools for native modules (bcrypt, etc.)
-RUN apk add --no-cache python3 make g++
+# Install build tools for native modules (bcrypt, etc.) and Chromium for Puppeteer
+RUN apk add --no-cache python3 make g++ chromium nss freetype harfbuzz ca-certificates ttf-freefont
 
 COPY package*.json ./
 # Rebuild native modules from source to avoid exec-format errors on Alpine

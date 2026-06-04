@@ -1,0 +1,2 @@
+ALTER TABLE message_logs ADD COLUMN IF NOT EXISTS media_url TEXT;
+ALTER TABLE message_logs ADD COLUMN IF NOT EXISTS mimetype VARCHAR(100);

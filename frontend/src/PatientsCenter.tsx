@@ -1,7 +1,8 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import React, { FormEvent, useEffect, useMemo, useState } from 'react';
 import { format, formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { api, setAuthToken } from './api';
+import { PatientProfile } from './PatientProfile';
 
 type Patient = {
   id: string;
@@ -106,14 +107,15 @@ function maskCpf(value: string) {
 
 function maskPhone(value: string) {
   const digits = onlyDigits(value).slice(0, 11);
-  if (digits.length <= 10) {
-    return digits
-      .replace(/(\d{2})(\d)/, '($1) $2')
-      .replace(/(\d{4})(\d{1,4})$/, '$1-$2');
+  if (digits.length === 0) return '';
+  if (digits.length <= 2) return `(${digits}`;
+  if (digits.length <= 6) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
   }
-  return digits
-    .replace(/(\d{2})(\d)/, '($1) $2')
-    .replace(/(\d{5})(\d{1,4})$/, '$1-$2');
+  if (digits.length <= 10) {
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+  }
+  return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
 }
 
 function maskZipCode(value: string) {
@@ -140,7 +142,10 @@ async function lookupCep(cep: string) {
 }
 
 export function PatientsCenter({ token, onError }: PatientsCenterProps) {
+  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
+  const [patientToDelete, setPatientToDelete] = useState<Patient | null>(null);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -217,12 +222,12 @@ export function PatientsCenter({ token, onError }: PatientsCenterProps) {
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
   }
 
-  function formatLastConsultation(patient: Patient) {
+  function formatRegistrationDate(patient: Patient) {
     const date = patient.created_at ? new Date(patient.created_at) : null;
-    if (!date || Number.isNaN(date.getTime())) return 'Última consulta: N/A';
+    if (!date || Number.isNaN(date.getTime())) return 'Cadastrado em: N/A';
 
     const distance = formatDistanceToNow(date, { locale: ptBR, addSuffix: true });
-    return `Última consulta: ${format(date, 'dd/MM/yyyy', { locale: ptBR })} - aproximadamente ${distance}`;
+    return `Cadastrado em: ${format(date, 'dd/MM/yyyy', { locale: ptBR })} - aproximadamente ${distance}`;
   }
 
   function downloadPatientList(formatType: 'csv' | 'excel') {
@@ -289,7 +294,8 @@ export function PatientsCenter({ token, onError }: PatientsCenterProps) {
     try {
       setSubmitting(true);
       setAuthToken(token);
-      await api.post('/patients', {
+      
+      const data = {
         nome: form.nome.trim(),
         celularDdi: form.celularDdi,
         celular: celularDigits,
@@ -299,7 +305,6 @@ export function PatientsCenter({ token, onError }: PatientsCenterProps) {
         rg: form.rg.trim() || null,
         pacienteEstrangeiro: form.pacienteEstrangeiro,
         telefone: phoneDigits || null,
-        // telefone fixo removed from API submission
         email: form.email.trim() || null,
         comoConheceuClinica: form.comoConheceuClinica || null,
         profissao: form.profissao.trim() || null,
@@ -323,17 +328,36 @@ export function PatientsCenter({ token, onError }: PatientsCenterProps) {
         convenioTitular: form.convenioTitular.trim() || null,
         convenioNumeroCarteirinha: form.convenioNumeroCarteirinha.trim() || null,
         convenioCpfResponsavel: convenioCpfResponsavelDigits || null
-      });
+      };
+
+      if (editingPatient) {
+        await api.put(`/patients/${editingPatient.id}`, data);
+      } else {
+        await api.post('/patients', data);
+      }
 
       setForm(emptyForm);
-  setFormErrors({});
+      setFormErrors({});
       setShowCreateModal(false);
+      setEditingPatient(null);
       await loadPatients();
     } catch (error: any) {
       const message = error?.response?.data?.message ?? 'Falha ao cadastrar paciente.';
       onError(message);
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleDelete() {
+    if (!patientToDelete || !token) return;
+    try {
+      setAuthToken(token);
+      await api.delete(`/patients/${patientToDelete.id}`);
+      setPatientToDelete(null);
+      await loadPatients();
+    } catch (error: any) {
+      onError('Falha ao excluir paciente.');
     }
   }
 
@@ -346,95 +370,128 @@ export function PatientsCenter({ token, onError }: PatientsCenterProps) {
   }
 
   return (
-    <section className="patientsPanel">
-      <header className="patientsHeader">
-        <h2>Pacientes</h2>
-        <button className="primaryAction" onClick={() => { setShowCreateModal(true); setFormErrors({}); }}>
-          Cadastrar paciente
-        </button>
-      </header>
+    <div className="patientsPanel" style={{ maxWidth: '1000px', margin: '0 auto', padding: '20px' }}>
+      {selectedPatient ? (
+        <PatientProfile 
+          token={token} 
+          patient={selectedPatient} 
+          onBack={() => setSelectedPatient(null)} 
+          onError={onError} 
+        />
+      ) : (
+        <>
+          <header className="patientsHeader" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid #e2e8f0', paddingBottom: '12px' }}>
+            <h2 style={{ margin: 0, fontSize: '22px', fontWeight: '700', color: '#0f172a', letterSpacing: '-0.5px' }}>Gestão de Pacientes</h2>
+            <button 
+              type="button" 
+              style={{ 
+                padding: '10px 18px', 
+                background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', 
+                color: '#fff', 
+                border: 'none', 
+                borderRadius: '8px', 
+                cursor: 'pointer', 
+                fontWeight: '600', 
+                fontSize: '13px',
+                boxShadow: '0 4px 6px -1px rgba(37, 99, 235, 0.2), 0 2px 4px -2px rgba(37, 99, 235, 0.2)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                transition: 'all 0.2s ease-in-out'
+              }} 
+              onClick={() => { setShowCreateModal(true); setFormErrors({}); }}
+            >
+              <span style={{ fontSize: '16px', fontWeight: 'bold' }}>+</span> Cadastrar paciente
+            </button>
+          </header>
 
-      <div className="patientsTabs">
-        <button
-          className={activeTab === 'search' ? 'active' : ''}
-          onClick={() => setActiveTab('search')}
-        >
-          Buscar
-        </button>
-        <button
-          className={activeTab === 'aniversariantes' ? 'active' : ''}
-          onClick={() => setActiveTab('aniversariantes')}
-        >
-          Aniversariantes {birthdaysCount > 0 ? `(${birthdaysCount})` : ''}
-        </button>
-        <button
-          className={activeTab === 'retornos' ? 'active' : ''}
-          onClick={() => setActiveTab('retornos')}
-        >
-          Retornos semestrais
-        </button>
-      </div>
-
-      <div className="patientsSearchCard">
-        <div className="patientsToolbar">
-          <input
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Busque por nome, telefone ou CPF"
-          />
-          <div className="patientsToolbarActions">
-            <button type="button" className="secondary" onClick={() => onError('Filtro de categoria ainda não implementado.')}>Filtrar por categoria</button>
-            <button onClick={loadPatients} disabled={loading}>{loading ? 'Atualizando...' : 'Atualizar'}</button>
+          <div className="patientsTabs">
+            <button
+              className={activeTab === 'search' ? 'active' : ''}
+              onClick={() => setActiveTab('search')}
+            >
+              Buscar
+            </button>
+            <button
+              className={activeTab === 'aniversariantes' ? 'active' : ''}
+              onClick={() => setActiveTab('aniversariantes')}
+            >
+              Aniversariantes {birthdaysCount > 0 ? `(${birthdaysCount})` : ''}
+            </button>
+            <button
+              className={activeTab === 'retornos' ? 'active' : ''}
+              onClick={() => setActiveTab('retornos')}
+            >
+              Retornos semestrais
+            </button>
           </div>
-        </div>
 
-        <div className="patientListWrapper">
-          {filteredPatients.length === 0 ? (
-            <div className="emptyPatients">Nenhum paciente encontrado.</div>
-          ) : (
-            <div className="patientList">
-              {filteredPatients.map((patient) => (
-                <div key={patient.id} className="patientCard">
-                  <div className="patientCardMain">
-                    <div className="patientAvatar">{getInitials(patient.nome)}</div>
-                    <div className="patientCardInfo">
-                      <div className="patientName">{patient.nome}</div>
-                      <div className="patientSubtitle">{formatLastConsultation(patient)}</div>
-                    </div>
-                  </div>
-
-                  <div className="patientCardMeta">
-                    <div className="metaItem">{patient.cpf ? maskCpf(patient.cpf) : '-'}</div>
-                    <div className="metaItem">
-                      {patient.celular ? maskPhone(patient.celular) : '-'}
-                      {patient.celular ? (
-                        <span style={{ marginLeft: 6, opacity: 0.7 }} title="WhatsApp">
-                          📱
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-              ))}
+          <div className="patientsSearchCard">
+            <div className="patientsToolbar">
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Busque por nome, telefone ou CPF"
+              />
+              <div className="patientsToolbarActions">
+                <button type="button" className="secondary" onClick={() => onError('Filtro de categoria ainda não implementado.')}>Filtrar por categoria</button>
+                <button onClick={loadPatients} disabled={loading}>{loading ? 'Atualizando...' : 'Atualizar'}</button>
+              </div>
             </div>
-          )}
-        </div>
 
-        <div className="patientsFooter">
-          <div>Mostrando {filteredPatients.length} de {patients.length} resultados</div>
-          <div className="exportLinks">
-            <button type="button" onClick={() => downloadPatientList('excel')}>Excel</button>
-            <button type="button" onClick={() => downloadPatientList('csv')}>CSV</button>
+            <div className="patientListWrapper">
+              {filteredPatients.length === 0 ? (
+                <div className="emptyPatients">Nenhum paciente encontrado.</div>
+              ) : (
+                <div className="patientList">
+                  {filteredPatients.map((patient, index) => (
+                    <div key={`${patient.id}-${index}`} className="patientCard" onClick={() => setSelectedPatient(patient)}>
+                      <div className="patientCardMain">
+                        <div className="patientAvatar">{getInitials(patient.nome)}</div>
+                        <div className="patientCardInfo">
+                          <div className="patientName">{patient.nome}</div>
+                          <div className="patientSubtitle">{formatRegistrationDate(patient)}</div>
+                        </div>
+                      </div>
+
+                      <div className="patientCardMeta">
+                        <div className="metaItem">{patient.cpf ? maskCpf(patient.cpf) : '-'}</div>
+                        <div className="metaItem">
+                          {patient.celular ? maskPhone(patient.celular) : '-'}
+                          {patient.celular ? (
+                            <span style={{ marginLeft: 6, opacity: 0.7 }} title="WhatsApp">
+                              📱
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="patientActions" style={{ display: 'flex', gap: 8, marginLeft: 16 }}>
+                          <button type="button" className="secondary" style={{ padding: '4px 8px', fontSize: '12px' }} onClick={(e) => { e.stopPropagation(); setEditingPatient(patient); setForm({ ...emptyForm, nome: patient.nome, cpf: patient.cpf || '', celular: patient.celular || '', email: patient.email || '' }); setShowCreateModal(true); }}>Editar</button>
+                          <button type="button" className="secondary" style={{ padding: '4px 8px', fontSize: '12px', background: '#fee2e2', color: '#b91c1c', borderColor: '#fecaca' }} onClick={(e) => { e.stopPropagation(); setPatientToDelete(patient); }}>Excluir</button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="patientsFooter">
+              <div>Mostrando {filteredPatients.length} de {patients.length} resultados</div>
+              <div className="exportLinks">
+                <button type="button" onClick={() => downloadPatientList('excel')}>Excel</button>
+                <button type="button" onClick={() => downloadPatientList('csv')}>CSV</button>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
 
-      {showCreateModal ? (
-        <div className="scheduleModalOverlay" onClick={() => setShowCreateModal(false)}>
+      {showCreateModal && (
+        <div className="scheduleModalOverlay" onClick={() => { setShowCreateModal(false); setEditingPatient(null); }} style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <form className="scheduleModal patientModal" onSubmit={submitPatient} onClick={(event) => event.stopPropagation()}>
             <div className="scheduleModalHeader">
-              <strong>Inclusão de paciente</strong>
-              <button type="button" className="popoverClose" onClick={() => setShowCreateModal(false)}>×</button>
+              <strong>{editingPatient ? 'Edição de paciente' : 'Inclusão de paciente'}</strong>
+              <button type="button" className="popoverClose" onClick={() => { setShowCreateModal(false); setEditingPatient(null); }}>×</button>
             </div>
 
             <div style={{ marginBottom: 12, color: '#475569', fontSize: 13 }}>
@@ -797,7 +854,27 @@ export function PatientsCenter({ token, onError }: PatientsCenterProps) {
           </div>
           </form>
         </div>
-      ) : null}
-    </section>
+      )}
+
+      {patientToDelete && (
+        <div className="scheduleModalOverlay" onClick={() => setPatientToDelete(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(15, 23, 42, 0.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div className="scheduleModal" style={{ maxWidth: '400px', padding: '20px', background: '#fff', borderRadius: '12px' }} onClick={(e) => e.stopPropagation()}>
+            <div className="scheduleModalHeader">
+              <strong>Confirmar Exclusão</strong>
+              <button type="button" className="popoverClose" onClick={() => setPatientToDelete(null)}>×</button>
+            </div>
+            <div style={{ margin: '16px 0', color: '#475569', fontSize: '14px' }}>
+              Tem certeza que deseja excluir o paciente <strong>{patientToDelete.nome}</strong>?
+              <br />
+              <strong style={{ color: '#b91c1c' }}>Esta ação é irreversível!</strong>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+              <button type="button" className="secondary" style={{ border: '1px solid #cbd5e1', background: '#fff', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer' }} onClick={() => setPatientToDelete(null)}>Cancelar</button>
+              <button type="button" style={{ background: '#b91c1c', color: '#fff', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer' }} onClick={handleDelete}>Excluir</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

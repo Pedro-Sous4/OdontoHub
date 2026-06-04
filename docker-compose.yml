@@ -6,8 +6,8 @@ services:
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/odontohub
       REDIS_URL: redis://redis:6379
       JWT_SECRET: supersecret
-      BYPASS_AUTH: 'true'
-      BYPASS_TENANT_ID: '00000000-0000-0000-0000-000000000000'
+      BYPASS_AUTH: 'false'
+
       USE_CONTAINER_HOSTS: 'true'
     ports:
       - '3000:3000'
@@ -27,8 +27,8 @@ services:
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/odontohub
       REDIS_URL: redis://redis:6379
       JWT_SECRET: supersecret
-      BYPASS_AUTH: 'true'
-      BYPASS_TENANT_ID: '00000000-0000-0000-0000-000000000000'
+      BYPASS_AUTH: 'false'
+
     volumes:
       - ./backend:/app:cached
       - backend_node_modules:/app/node_modules
@@ -37,15 +37,15 @@ services:
       - redis
 
   patients-service:
-    profiles: ['full']
+
     build: ./backend
     environment:
       SERVICE_CMD: dev:patients
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/odontohub
       REDIS_URL: redis://redis:6379
       JWT_SECRET: supersecret
-      BYPASS_AUTH: 'true'
-      BYPASS_TENANT_ID: '00000000-0000-0000-0000-000000000000'
+      BYPASS_AUTH: 'false'
+
       S3_ENDPOINT: http://minio:9000
       S3_BUCKET: odonto-files
       S3_ACCESS_KEY: minio
@@ -58,16 +58,48 @@ services:
       - redis
       - minio
 
+  assistant-service:
+    build: ./backend
+    environment:
+      SERVICE_CMD: dev:assistant
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/odontohub
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: supersecret
+      BYPASS_AUTH: 'false'
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-""}
+    volumes:
+      - ./backend:/app:cached
+      - backend_node_modules:/app/node_modules
+    depends_on:
+      - postgres
+      - redis
+      - ollama
+
+  stock-service:
+    build: ./backend
+    environment:
+      SERVICE_CMD: dev:stock
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/odontohub
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: supersecret
+      BYPASS_AUTH: 'false'
+    volumes:
+      - ./backend:/app:cached
+      - backend_node_modules:/app/node_modules
+    depends_on:
+      - postgres
+      - redis
+
   agenda-service:
-    profiles: ['full']
+
     build: ./backend
     environment:
       SERVICE_CMD: dev:agenda
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/odontohub
       REDIS_URL: redis://redis:6379
       JWT_SECRET: supersecret
-      BYPASS_AUTH: 'true'
-      BYPASS_TENANT_ID: '00000000-0000-0000-0000-000000000000'
+      BYPASS_AUTH: 'false'
+
     volumes:
       - ./backend:/app:cached
       - backend_node_modules:/app/node_modules
@@ -76,15 +108,15 @@ services:
       - redis
 
   prontuario-service:
-    profiles: ['full']
+
     build: ./backend
     environment:
       SERVICE_CMD: dev:prontuario
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/odontohub
       REDIS_URL: redis://redis:6379
       JWT_SECRET: supersecret
-      BYPASS_AUTH: 'true'
-      BYPASS_TENANT_ID: '00000000-0000-0000-0000-000000000000'
+      BYPASS_AUTH: 'false'
+
     volumes:
       - ./backend:/app:cached
       - backend_node_modules:/app/node_modules
@@ -93,32 +125,37 @@ services:
       - redis
 
   finance-service:
-    profiles: ['full']
+
     build: ./backend
     environment:
       SERVICE_CMD: dev:finance
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/odontohub
       REDIS_URL: redis://redis:6379
       JWT_SECRET: supersecret
-      BYPASS_AUTH: 'true'
-      BYPASS_TENANT_ID: '00000000-0000-0000-0000-000000000000'
+      BYPASS_AUTH: 'false'
+      S3_ENDPOINT: http://minio:9000
+      S3_BUCKET: odonto-files
+      S3_ACCESS_KEY: minio
+      S3_SECRET_KEY: minio123
+
     volumes:
       - ./backend:/app:cached
       - backend_node_modules:/app/node_modules
     depends_on:
       - postgres
       - redis
+      - minio
 
   tiss-service:
-    profiles: ['full']
+
     build: ./backend
     environment:
       SERVICE_CMD: dev:tiss
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/odontohub
       REDIS_URL: redis://redis:6379
       JWT_SECRET: supersecret
-      BYPASS_AUTH: 'true'
-      BYPASS_TENANT_ID: '00000000-0000-0000-0000-000000000000'
+      BYPASS_AUTH: 'false'
+
     volumes:
       - ./backend:/app:cached
       - backend_node_modules:/app/node_modules
@@ -127,15 +164,15 @@ services:
       - redis
 
   whatsapp-service:
-    profiles: ['full']
+
     build: ./backend
     environment:
       SERVICE_CMD: dev:whatsapp
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/odontohub
       REDIS_URL: redis://redis:6379
       JWT_SECRET: supersecret
-      BYPASS_AUTH: 'true'
-      BYPASS_TENANT_ID: '00000000-0000-0000-0000-000000000000'
+      BYPASS_AUTH: 'false'
+
     volumes:
       - ./backend:/app:cached
       - backend_node_modules:/app/node_modules
@@ -144,15 +181,17 @@ services:
       - redis
 
   google-sync-service:
-    profiles: ['full']
+
     build: ./backend
     environment:
       SERVICE_CMD: dev:google
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/odontohub
       REDIS_URL: redis://redis:6379
       JWT_SECRET: supersecret
-      BYPASS_AUTH: 'true'
-      BYPASS_TENANT_ID: '00000000-0000-0000-0000-000000000000'
+      BYPASS_AUTH: 'false'
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-""}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-""}
+
     volumes:
       - ./backend:/app:cached
       - backend_node_modules:/app/node_modules
@@ -161,15 +200,15 @@ services:
       - redis
 
   notification-service:
-    profiles: ['full']
+
     build: ./backend
     environment:
       SERVICE_CMD: dev:notification
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/odontohub
       REDIS_URL: redis://redis:6379
       JWT_SECRET: supersecret
-      BYPASS_AUTH: 'true'
-      BYPASS_TENANT_ID: '00000000-0000-0000-0000-000000000000'
+      BYPASS_AUTH: 'false'
+
     volumes:
       - ./backend:/app:cached
       - backend_node_modules:/app/node_modules
@@ -178,15 +217,17 @@ services:
       - redis
 
   worker-service:
-    profiles: ['full']
+
     build: ./backend
     environment:
       SERVICE_CMD: dev:worker
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/odontohub
       REDIS_URL: redis://redis:6379
       JWT_SECRET: supersecret
-      BYPASS_AUTH: 'true'
-      BYPASS_TENANT_ID: '00000000-0000-0000-0000-000000000000'
+      BYPASS_AUTH: 'false'
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-""}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-""}
+
     volumes:
       - ./backend:/app:cached
       - backend_node_modules:/app/node_modules
@@ -199,7 +240,7 @@ services:
     environment:
       VITE_API_BASE_URL: http://localhost:3000
     ports:
-      - '5173:5173'
+      - '5174:5173'
     volumes:
       - ./frontend:/app:cached
       - frontend_node_modules:/app/node_modules
@@ -213,7 +254,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - '5432:5432'
+      - '5433:5432'
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./backend/database/migrations:/docker-entrypoint-initdb.d
@@ -235,8 +276,16 @@ services:
     volumes:
       - minio_data:/data
 
+  ollama:
+    image: ollama/ollama:latest
+    ports:
+      - '11434:11434'
+    volumes:
+      - ollama_data:/root/.ollama
+
 volumes:
   pgdata:
   minio_data:
   backend_node_modules:
   frontend_node_modules:
+  ollama_data:

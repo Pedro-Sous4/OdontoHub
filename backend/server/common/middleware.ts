@@ -18,6 +18,22 @@ export const apiLimiter = rateLimit({
 });
 
 export function requireAuth(req: AuthRequest, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+
+  // Try to use a real JWT first (forwarded by the API Gateway)
+  if (authHeader?.startsWith('Bearer ')) {
+    try {
+      const token = authHeader.replace('Bearer ', '');
+      req.auth = verifyJwt(token);
+      return next();
+    } catch {
+      // If bypass is enabled, fall through to bypass logic instead of failing
+      if (!devConfig.bypassAuth) {
+        return res.status(401).json({ message: 'Token inválido' });
+      }
+    }
+  }
+
   // Bypass de autenticação para ambientes de desenvolvimento (docker/composer)
   if (devConfig.bypassAuth) {
     req.auth = { userId: 'dev', tenantId: devConfig.bypassTenantId, role: 'admin' } as any;
@@ -25,18 +41,7 @@ export function requireAuth(req: AuthRequest, res: Response, next: NextFunction)
     return next();
   }
 
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'Token ausente' });
-  }
-
-  try {
-    const token = authHeader.replace('Bearer ', '');
-    req.auth = verifyJwt(token);
-    return next();
-  } catch {
-    return res.status(401).json({ message: 'Token inválido' });
-  }
+  return res.status(401).json({ message: 'Token ausente' });
 }
 
 export function requireRole(roles: Array<'admin' | 'dentist' | 'receptionist' | 'finance'>) {

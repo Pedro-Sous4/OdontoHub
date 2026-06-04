@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Calendar, dateFnsLocalizer, SlotInfo, Views } from 'react-big-calendar';
+import { ptBR } from 'date-fns/locale';
 import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import {
   addDays,
@@ -15,13 +16,14 @@ import {
   startOfWeek,
   subMonths
 } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
+
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import 'react-big-calendar/lib/addons/dragAndDrop/styles.css';
 import { api, setAuthToken } from './api';
 import { Appointment, Dentist } from './types';
 import { MessagesCenter } from './MessagesCenter';
 import { PatientsCenter } from './PatientsCenter';
+import { SettingsCenter } from './SettingsCenter';
 import { FinanceCenter } from './FinanceCenter';
 import odontoHubLogo from './assets/odontohub-logo.png';
 
@@ -35,6 +37,18 @@ const localizer = dateFnsLocalizer({
   locales
 });
 
+interface Procedure {
+  id: string;
+  nome: string;
+  duracao_padrao: number;
+  valor: number;
+}
+
+interface Room {
+  id: string;
+  nome: string;
+}
+
 type CalendarEvent = {
   id: string;
   title: string;
@@ -45,6 +59,9 @@ type CalendarEvent = {
   end: Date;
   resourceId: string;
   status: Appointment['status'];
+  procedureId?: string;
+  procedureName?: string;
+  roomId?: string;
 };
 
 const DnDCalendar = withDragAndDrop<CalendarEvent, { resourceId: string; resourceTitle: string }>(Calendar as never);
@@ -82,6 +99,7 @@ type PopoverPosition = {
 };
 
 const statusPalette: Record<Appointment['status'], string> = {
+  pending_confirmation: '#fae8ff',
   scheduled: '#e2e8f0',
   confirmed: '#dbeafe',
   rescheduled: '#ede9fe',
@@ -93,6 +111,7 @@ const statusPalette: Record<Appointment['status'], string> = {
 };
 
 const statusLabels: Record<Appointment['status'], string> = {
+  pending_confirmation: 'Aguardando Confirmação',
   scheduled: 'Agendada',
   confirmed: 'Confirmada',
   rescheduled: 'Reagendada',
@@ -115,7 +134,7 @@ function EventCard({ event }: { event: CalendarEvent }) {
 }
 
 export function App() {
-  const menuItems = ['Agenda', 'Pacientes', 'Financeiro', 'Mensagens'];
+  const menuItems = ['Agenda', 'Pacientes', 'Financeiro', 'Mensagens', 'Configurações'];
   // Token usado para autenticação; é armazenado no localStorage após login.
   const [token, setToken] = useState('');
   const [authEmail, setAuthEmail] = useState('pedro@odontohub.com');
@@ -130,6 +149,9 @@ export function App() {
   const [selectedView, setSelectedView] = useState<(typeof Views)[keyof typeof Views]>(Views.WEEK);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [dentists, setDentists] = useState<Dentist[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
+  const [procedures, setProcedures] = useState<Procedure[]>([]);
+  const [dentistViewFilter, setDentistViewFilter] = useState<string>('all-merged');
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [popoverPosition, setPopoverPosition] = useState<PopoverPosition>({ top: 220, left: 280 });
   const [showScheduleModal, setShowScheduleModal] = useState(false);
@@ -140,6 +162,8 @@ export function App() {
   const [scheduleForm, setScheduleForm] = useState({
     patientId: '',
     dentistId: '',
+    roomId: '',
+    procedureId: '',
     duration: 30,
     start: new Date()
   });
@@ -211,18 +235,24 @@ export function App() {
 
   const events = useMemo<CalendarEvent[]>(
     () =>
-      appointments.map((apt) => ({
-        id: apt.id,
-        title: apt.patient_name ?? 'Paciente',
-        patientName: apt.patient_name ?? 'Paciente',
-        dentistName: apt.dentist_name ?? 'Dentista',
-        phone: (apt as Appointment & { phone?: string }).phone,
-        start: new Date(apt.start_time),
-        end: new Date(apt.end_time),
-        resourceId: apt.dentist_id,
-        status: apt.status
-      })),
-    [appointments]
+      appointments.map((apt) => {
+        const proc = procedures.find((p) => p.id === apt.procedure_id);
+        return {
+          id: apt.id,
+          title: apt.patient_name ?? 'Paciente',
+          patientName: apt.patient_name ?? 'Paciente',
+          dentistName: apt.dentist_name ?? 'Dentista',
+          phone: (apt as Appointment & { phone?: string }).phone,
+          start: new Date(apt.start_time),
+          end: new Date(apt.end_time),
+          resourceId: apt.dentist_id,
+          status: apt.status,
+          procedureId: apt.procedure_id,
+          procedureName: proc?.nome,
+          roomId: apt.room_id
+        };
+      }),
+    [appointments, procedures]
   );
 
   async function loadWeek(date = selectedDate) {
@@ -238,16 +268,20 @@ export function App() {
       const weekStart = startOfWeek(date, { weekStartsOn: 1 }).toISOString();
       const weekEnd = endOfWeek(date, { weekStartsOn: 1 }).toISOString();
 
-      const [appointmentsResponse, dentistsResponse] = await Promise.all([
+      const [appointmentsResponse, dentistsResponse, proceduresResponse, roomsResponse] = await Promise.all([
         api.get<Appointment[]>('/agenda/appointments', {
           params: { start: weekStart, end: weekEnd }
         }),
-        api.get<Dentist[]>('/agenda/dentists')
+        api.get<Dentist[]>('/agenda/dentists'),
+        api.get<Procedure[]>('/auth/settings/procedures').catch(() => ({ data: [] })),
+        api.get<Room[]>('/auth/settings/rooms').catch(() => ({ data: [] }))
       ]);
 
       setSelectedDate(date);
       setAppointments(appointmentsResponse.data);
       setDentists(dentistsResponse.data);
+      setProcedures(proceduresResponse.data);
+      setRooms(roomsResponse.data);
     } catch {
       setErrorMessage('Não foi possível carregar agenda/dentistas. Verifique API e token.');
     } finally {
@@ -363,7 +397,9 @@ export function App() {
     setInsight(null);
     setScheduleForm({
       patientId: '',
-      dentistId: dentists[0].id,
+      dentistId: dentists[0]?.id || '',
+      roomId: '',
+      procedureId: '',
       duration: 30,
       start: slot.start
     });
@@ -421,7 +457,8 @@ export function App() {
       await api.post('/agenda/appointments', {
         patientId: scheduleForm.patientId,
         dentistId: scheduleForm.dentistId,
-        roomId: null,
+        roomId: scheduleForm.roomId || null,
+        procedureId: scheduleForm.procedureId || null,
         startTime: scheduleForm.start.toISOString(),
         endTime: addMinutes(scheduleForm.start, scheduleForm.duration).toISOString(),
         status: 'scheduled'
@@ -474,6 +511,7 @@ export function App() {
   const totalConsultas = appointments.length;
   const confirmadas = appointments.filter((item) => item.status === 'confirmed').length;
   const canceladas = appointments.filter((item) => item.status === 'cancelled').length;
+  const pendingConfirmations = appointments.filter((item) => item.status === 'pending_confirmation');
   const hasResources = dentists.length > 0;
 
   function prettyStatus(status: Appointment['status']) {
@@ -698,6 +736,10 @@ export function App() {
         <main className="contentSingle">
           <PatientsCenter token={token} onError={setErrorMessage} />
         </main>
+      ) : activeMenu === 'Configurações' ? (
+        <main className="contentSingle">
+          <SettingsCenter token={token} onError={setErrorMessage} />
+        </main>
       ) : activeMenu === 'Financeiro' ? (
         <main className="contentSingle">
           <FinanceCenter token={token} onError={setErrorMessage} />
@@ -756,6 +798,58 @@ export function App() {
             </div>
           </section>
 
+          {pendingConfirmations.length > 0 ? (
+            <section className="sideCard" style={{ borderLeft: '4px solid #d8b4fe' }}>
+              <div className="sideCardHeader">
+                <strong>Solicitações da IA</strong>
+                <span style={{ background: '#f3e8ff', color: '#7e22ce', padding: '2px 8px', borderRadius: '12px', fontSize: '12px', fontWeight: 600 }}>{pendingConfirmations.length}</span>
+              </div>
+              <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {pendingConfirmations.map((apt) => (
+                  <div key={apt.id} style={{ fontSize: '13px', padding: '10px', background: '#faf5ff', borderRadius: '6px', border: '1px solid #f3e8ff' }}>
+                    <div style={{ fontWeight: 600, color: '#1e1b4b' }}>{apt.patient_name}</div>
+                    <div style={{ color: '#475569', margin: '2px 0' }}>Dr(a). {apt.dentist_name}</div>
+                    <div style={{ fontSize: '11px', color: '#64748b' }}>
+                      {new Date(apt.start_time).toLocaleDateString('pt-BR')} às {new Date(apt.start_time).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                      <button 
+                        onClick={async () => {
+                          try {
+                            setAuthToken(token);
+                            await api.put(`/agenda/appointments/${apt.id}/status`, { status: 'scheduled' });
+                            await loadDashboard();
+                          } catch {
+                            alert('Erro ao confirmar agendamento');
+                          }
+                        }}
+                        style={{ flex: 1, padding: '4px 8px', background: '#22c55e', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 600 }}
+                      >
+                        Confirmar
+                      </button>
+                      <button 
+                        onClick={async () => {
+                          if (confirm('Deseja recusar e excluir este pré-agendamento?')) {
+                            try {
+                              setAuthToken(token);
+                              await api.delete(`/agenda/appointments/${apt.id}`);
+                              await loadDashboard();
+                            } catch {
+                              alert('Erro ao recusar agendamento');
+                            }
+                          }
+                        }}
+                        style={{ padding: '4px 8px', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '11px', fontWeight: 600 }}
+                      >
+                        Recusar
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
           <section className="sideCard">
             <div className="sideCardHeader">
               <strong>Agendas</strong>
@@ -788,7 +882,20 @@ export function App() {
               +
             </button>
             <h2>{format(selectedDate, 'MMMM yyyy', { locale: ptBR })}</h2>
-            <div className="scheduleControls">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <select
+                value={dentistViewFilter}
+                onChange={e => setDentistViewFilter(e.target.value)}
+                style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', outline: 'none' }}
+              >
+                <option value="all-split">Todos (Lado a Lado)</option>
+                <option value="all-merged">Todos (Visão Única)</option>
+                {dentists.map(d => (
+                  <option key={d.id} value={d.id}>{d.nome}</option>
+                ))}
+              </select>
+
+              <div className="scheduleControls">
               <button onClick={() => loadWeek(new Date())}>Hoje</button>
               <button
                 className={selectedView === Views.WEEK ? 'viewActive' : ''}
@@ -802,6 +909,7 @@ export function App() {
               >
                 Dia
               </button>
+            </div>
             </div>
           </div>
 
@@ -821,67 +929,6 @@ export function App() {
 
           {errorMessage ? <div className="errorBanner">{errorMessage}</div> : null}
 
-          {showRegisterModal ? (
-            <div className="scheduleModalOverlay" onClick={() => setShowRegisterModal(false)}>
-              <div className="scheduleModal" onClick={(event) => event.stopPropagation()}>
-                <div className="scheduleModalHeader">
-                  <strong>Cadastrar clínica</strong>
-                  <button className="popoverClose" onClick={() => setShowRegisterModal(false)}>×</button>
-                </div>
-
-                <label className="formLabel">Nome da clínica</label>
-                <input
-                  className="formInput"
-                  value={authClinicName}
-                  onChange={(event) => setAuthClinicName(event.target.value)}
-                  placeholder="Clínica A"
-                />
-
-                <label className="formLabel">CNPJ</label>
-                <input
-                  className="formInput"
-                  value={authCnpj}
-                  onChange={(event) => setAuthCnpj(event.target.value)}
-                  placeholder="00000000/0000-00"
-                />
-
-                <label className="formLabel">E-mail da clínica</label>
-                <input
-                  className="formInput"
-                  value={authClinicEmail}
-                  onChange={(event) => setAuthClinicEmail(event.target.value)}
-                  placeholder="contato@clinica.com"
-                />
-
-                <label className="formLabel">E-mail do usuário</label>
-                <input
-                  className="formInput"
-                  value={authEmail}
-                  onChange={(event) => setAuthEmail(event.target.value)}
-                  placeholder="usuario@clinica.com"
-                />
-
-                <label className="formLabel">Senha</label>
-                <input
-                  className="formInput"
-                  type="password"
-                  value={authPassword}
-                  onChange={(event) => setAuthPassword(event.target.value)}
-                  placeholder="Senha"
-                />
-
-                <div className="scheduleModalActions">
-                  <button className="ghostAction" onClick={() => setShowRegisterModal(false)} type="button">
-                    Cancelar
-                  </button>
-                  <button className="primaryAction" onClick={handleRegister} type="button">
-                    Criar conta
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : null}
-
           {showScheduleModal ? (
             <div className="scheduleModalOverlay" onClick={() => setShowScheduleModal(false)}>
               <div className="scheduleModal" onClick={(event) => event.stopPropagation()}>
@@ -890,16 +937,32 @@ export function App() {
                   <button className="popoverClose" onClick={() => setShowScheduleModal(false)}>×</button>
                 </div>
 
-                <label className="formLabel">Dentista</label>
-                <select
-                  className="formInput"
-                  value={scheduleForm.dentistId}
-                  onChange={(event) => setScheduleForm((prev) => ({ ...prev, dentistId: event.target.value }))}
-                >
-                  {dentists.map((dentist) => (
-                    <option key={dentist.id} value={dentist.id}>{dentist.nome}</option>
-                  ))}
-                </select>
+                <div>
+                  <label className="formLabel">Dentista</label>
+                  <select
+                    className="formInput"
+                    value={scheduleForm.dentistId}
+                    onChange={(event) => setScheduleForm((prev) => ({ ...prev, dentistId: event.target.value }))}
+                  >
+                    {dentists.map((dentist) => (
+                      <option key={dentist.id} value={dentist.id}>{dentist.nome}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="formLabel">Sala (Opcional)</label>
+                  <select
+                    className="formInput"
+                    value={scheduleForm.roomId}
+                    onChange={(event) => setScheduleForm((prev) => ({ ...prev, roomId: event.target.value }))}
+                  >
+                    <option value="">Nenhuma / Qualquer Sala</option>
+                    {rooms.map((r) => (
+                      <option key={r.id} value={r.id}>{r.nome}</option>
+                    ))}
+                  </select>
+                </div>
 
                 <label className="formLabel">Paciente</label>
                 <select
@@ -998,6 +1061,7 @@ export function App() {
 
           <DnDCalendar
             localizer={localizer}
+            culture="pt-BR"
             events={events}
             date={selectedDate}
             view={selectedView}
@@ -1016,9 +1080,17 @@ export function App() {
             onSelectSlot={createAppointment}
             onEventDrop={moveAppointment as never}
             resizable
-            resources={!isMobile && hasResources ? dentists.map((d) => ({ resourceId: d.id, resourceTitle: d.nome })) : undefined}
-            resourceIdAccessor={!isMobile && hasResources ? ((resource) => resource.resourceId) : undefined}
-            resourceTitleAccessor={!isMobile && hasResources ? ((resource) => resource.resourceTitle) : undefined}
+            resources={
+              !isMobile && hasResources
+                ? dentistViewFilter === 'all-merged'
+                  ? undefined
+                  : dentistViewFilter === 'all-split'
+                    ? dentists.map((d) => ({ resourceId: d.id, resourceTitle: d.nome }))
+                    : dentists.filter(d => d.id === dentistViewFilter).map((d) => ({ resourceId: d.id, resourceTitle: d.nome }))
+                : undefined
+            }
+            resourceIdAccessor={!isMobile && hasResources && dentistViewFilter !== 'all-merged' ? ((resource: any) => resource.resourceId) : undefined}
+            resourceTitleAccessor={!isMobile && hasResources && dentistViewFilter !== 'all-merged' ? ((resource: any) => resource.resourceTitle) : undefined}
             startAccessor={(event) => event.start}
             endAccessor={(event) => event.end}
             eventPropGetter={(event) => {

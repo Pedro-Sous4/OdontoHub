@@ -33,3 +33,23 @@ export async function uploadPatientFile(params: {
 
   return { key, bucket };
 }
+
+export async function uploadWhatsAppMedia(params: {
+  tenantId: string;
+  filename: string;
+  contentType: string;
+  data: Buffer;
+}) {
+  const key = `${params.tenantId}/whatsapp/${params.filename}`;
+
+  await s3.send(
+    new PutObjectCommand({
+      Bucket: bucket,
+      Key: key,
+      Body: params.data,
+      ContentType: params.contentType
+    })
+  );
+
+  return { key, bucket };
+}
